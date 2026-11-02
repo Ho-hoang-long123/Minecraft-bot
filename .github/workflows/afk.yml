@@ -21,9 +21,7 @@ jobs:
           node-version: 18
 
       - name: Install Dependencies
-        run: |
-          npm install --package-lock-only || true
-          npm install
+        run: npm install bedrock-protocol
 
       - name: Run Bot
         env:
