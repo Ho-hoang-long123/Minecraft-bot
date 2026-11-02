@@ -1,7 +1,12 @@
-name: Aternos Bedrock AFK Bot
+name: Aternos DynIP Bot
 
 on:
   workflow_dispatch:
+    inputs:
+      server_port:
+        description: 'Nhập Port mới của DynIP (Ví dụ: 12345)'
+        required: true
+        default: '19132'
 
 jobs:
   run-bot:
@@ -14,11 +19,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'npm' # Tự động lưu cache npm, lần sau chạy sẽ không phải tải lại
 
       - name: Install Dependencies
-        run: npm install --prefer-offline --no-audit
+        run: |
+          npm install --package-lock-only || true
+          npm install
 
       - name: Run Bot
+        env:
+          SERVER_PORT: ${{ github.event.inputs.server_port }}
         run: node bot.js
         
