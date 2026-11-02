@@ -1,12 +1,11 @@
 {
-  "name": "aternos-afk-reconnect",
+  "name": "aternos-dynip-bot",
   "version": "1.0.0",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
   },
   "dependencies": {
-    "bedrock-protocol": "^1.26.0",
-    "express": "^4.18.2"
+    "bedrock-protocol": "^1.26.0"
   }
 }
