@@ -1,31 +1,22 @@
 const bedrock = require('bedrock-protocol');
-const express = require('express');
 
-// Bắt toàn bộ lỗi ngầm để tránh crash tiến trình làm dừng GitHub Actions (Exit Code 1)
+// Chặn crash hệ thống để GitHub Actions không bị dừng đột ngột
 process.on('uncaughtException', (err) => {
-    console.log('[!] Đã chặn crash hệ thống:', err.message);
+    console.log('[!] Đã chặn lỗi ngầm:', err.message);
 });
-
-process.on('unhandledRejection', (reason, promise) => {
-    console.log('[!] Bỏ qua Promise lỗi ngầm:', reason);
-});
-
-// Express server giữ tiến trình ngầm luôn chạy
-const app = express();
-app.get('/', (req, res) => res.send('Bot AFK Bedrock đang hoạt động!'));
-app.listen(process.env.PORT || 3000);
 
 const CONFIG = {
-    HOST: 'Heopeppa.aternos.me',
-    PORT: 19132,
+    HOST: 'boarfish.aternos.host',
+    PORT: parseInt(process.env.SERVER_PORT || '19132'), // Nhận port động từ GitHub Actions
     BASE_NAME: 'AFK_Bot',
-    RECONNECT_DELAY: 15000 // Chờ 15 giây để gửi lại
+    RECONNECT_DELAY: 15000
 };
 
 let botIndex = 1;
 
-function createBedrockBot(username) {
-    console.log(`[+] Đang thử kết nối bot: ${username} tới ${CONFIG.HOST}:${CONFIG.PORT}...`);
+function startBot() {
+    const username = `${CONFIG.BASE_NAME}_${botIndex}`;
+    console.log(`[+] Đang kết nối tới DynIP ${CONFIG.HOST}:${CONFIG.PORT} với tên ${username}...`);
 
     try {
         const client = bedrock.createClient({
@@ -37,45 +28,29 @@ function createBedrockBot(username) {
         });
 
         client.on('join', () => {
-            console.log(`[✓] Bot Bedrock ${username} đã vào server thành công!`);
-        });
-
-        client.on('text', (packet) => {
-            if (packet.message) {
-                console.log(`[Chat] ${packet.source_name || 'System'}: ${packet.message}`);
-            }
+            console.log(`[✓] Bot ${username} đã vào server thành công qua DynIP!`);
         });
 
         client.on('disconnect', (packet) => {
-            console.log(`[-] ${username} bị ngắt kết nối (${packet.reason || 'Server ngắt'}).`);
+            console.log(`[-] Bị ngắt kết nối: ${packet.reason || 'Mất kết nối'}`);
             triggerReconnect();
         });
 
         client.on('error', (err) => {
-            console.log(`[!] Lỗi kết nối (${username}):`, err.message);
+            console.log(`[!] Lỗi kết nối: ${err.message}`);
             triggerReconnect();
         });
 
     } catch (err) {
-        console.log(`[!] Không thể khởi tạo bot (${username}):`, err.message);
+        console.log(`[!] Không thể khởi tạo client: ${err.message}`);
         triggerReconnect();
     }
 }
 
 function triggerReconnect() {
     botIndex++;
-    const nextUsername = `${CONFIG.BASE_NAME}_${botIndex}`;
-    console.log(`[🔄] Đang chờ ${CONFIG.RECONNECT_DELAY / 1000} giây trước khi gửi lại (${nextUsername})...`);
-
-    setTimeout(() => {
-        startBot();
-    }, CONFIG.RECONNECT_DELAY);
+    console.log(`[🔄] Đang chờ 15 giây để gửi bot mới (AFK_Bot_${botIndex})...`);
+    setTimeout(startBot, CONFIG.RECONNECT_DELAY);
 }
 
-function startBot() {
-    const currentUsername = `${CONFIG.BASE_NAME}_${botIndex}`;
-    createBedrockBot(currentUsername);
-}
-
-// Bắt đầu chạy bot
 startBot();
