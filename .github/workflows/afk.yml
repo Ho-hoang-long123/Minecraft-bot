@@ -1,12 +1,16 @@
-name: Aternos DynIP Bot
+name: Aternos Java AFK Bot
 
 on:
   workflow_dispatch:
     inputs:
-      server_port:
-        description: 'Nhập Port mới của DynIP (Ví dụ: 12345)'
+      server_host:
+        description: 'Nhập Host hoặc DynIP Java (VD: server.aternos.host)'
         required: true
-        default: '19132'
+        default: 'Heopeppa.aternos.me'
+      server_port:
+        description: 'Nhập Port Java (VD: 25565 hoặc cổng DynIP)'
+        required: true
+        default: '25565'
 
 jobs:
   run-bot:
@@ -20,11 +24,12 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install Dependencies
-        run: npm install bedrock-protocol
+      - name: Cài đặt thư viện Mineflayer
+        run: npm install
 
-      - name: Run Bot
+      - name: Chạy Bot Java
         env:
+          SERVER_HOST: ${{ github.event.inputs.server_host }}
           SERVER_PORT: ${{ github.event.inputs.server_port }}
         run: node bot.js
         
