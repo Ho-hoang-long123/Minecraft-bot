@@ -1,56 +1,42 @@
-const bedrock = require('bedrock-protocol');
+const mineflayer = require('mineflayer');
 
-// Chặn crash hệ thống để GitHub Actions không bị dừng đột ngột
+// Chặn crash hệ thống GitHub Actions
 process.on('uncaughtException', (err) => {
-    console.log('[!] Đã chặn lỗi ngầm:', err.message);
+    console.log('[!] Lỗi ngầm:', err.message);
 });
 
 const CONFIG = {
-    HOST: 'boarfish.aternos.host',
-    PORT: parseInt(process.env.SERVER_PORT || '19132'), // Nhận port động từ GitHub Actions
-    BASE_NAME: 'AFK_Bot',
-    RECONNECT_DELAY: 15000
+    host: process.env.SERVER_HOST || 'Heopeppa.aternos.me',
+    port: parseInt(process.env.SERVER_PORT || '25565'),
+    username: 'AFK_Bot_' + Math.floor(Math.random() * 900 + 100),
+    version: false // Tự động dò phiên bản Java của server
 };
 
-let botIndex = 1;
+function createBot() {
+    console.log(`[+] Đang kết nối tới Java Server ${CONFIG.host}:${CONFIG.port} với tên ${CONFIG.username}...`);
+    
+    const bot = mineflayer.createBot(CONFIG);
 
-function startBot() {
-    const username = `${CONFIG.BASE_NAME}_${botIndex}`;
-    console.log(`[+] Đang kết nối tới DynIP ${CONFIG.HOST}:${CONFIG.PORT} với tên ${username}...`);
+    bot.on('spawn', () => {
+        console.log(`[✓] Bot ${CONFIG.username} đã vào server Java thành công!`);
+        
+        // Cứ mỗi 30 giây nhảy một lần để không bị kick lỗi AFK
+        setInterval(() => {
+            if (bot.entity) {
+                bot.setControlState('jump', true);
+                setTimeout(() => bot.setControlState('jump', false), 500);
+            }
+        }, 30000);
+    });
 
-    try {
-        const client = bedrock.createClient({
-            host: CONFIG.HOST,
-            port: CONFIG.PORT,
-            username: username,
-            offline: true,
-            connectTimeout: 20000
-        });
+    bot.on('end', (reason) => {
+        console.log(`[-] Bị ngắt kết nối: ${reason}. Đang kết nối lại sau 15 giây...`);
+        setTimeout(createBot, 15000);
+    });
 
-        client.on('join', () => {
-            console.log(`[✓] Bot ${username} đã vào server thành công qua DynIP!`);
-        });
-
-        client.on('disconnect', (packet) => {
-            console.log(`[-] Bị ngắt kết nối: ${packet.reason || 'Mất kết nối'}`);
-            triggerReconnect();
-        });
-
-        client.on('error', (err) => {
-            console.log(`[!] Lỗi kết nối: ${err.message}`);
-            triggerReconnect();
-        });
-
-    } catch (err) {
-        console.log(`[!] Không thể khởi tạo client: ${err.message}`);
-        triggerReconnect();
-    }
+    bot.on('error', (err) => {
+        console.log(`[!] Lỗi kết nối: ${err.message}`);
+    });
 }
 
-function triggerReconnect() {
-    botIndex++;
-    console.log(`[🔄] Đang chờ 15 giây để gửi bot mới (AFK_Bot_${botIndex})...`);
-    setTimeout(startBot, CONFIG.RECONNECT_DELAY);
-}
-
-startBot();
+createBot();
