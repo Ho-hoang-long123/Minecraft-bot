@@ -1,0 +1,23 @@
+name: Aternos Bedrock AFK Bot
+
+on:
+  workflow_dispatch: # Bật thủ công bằng nút Run workflow
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Bot
+        run: node bot.js
+        
