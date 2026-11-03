@@ -1,16 +1,16 @@
-name: Aternos Bedrock AFK Bot (Infinite)
+name: Aternos Java AFK Bot (Infinite)
 
 on:
   workflow_dispatch:
     inputs:
       server_host:
-        description: 'Nhập Host hoặc DynIP Bedrock'
+        description: 'Nhập Host hoặc DynIP Java (VD: drum.aternos.host)'
         required: true
         default: 'drum.aternos.host'
       server_port:
-        description: 'Nhập Port Bedrock (Cổng riêng trên Aternos)'
+        description: 'Nhập Port Java (5 chữ số trên Aternos)'
         required: true
-        default: '19132'
+        default: '60653'
   schedule:
     # Tự động chạy lại cứ sau mỗi 5 tiếng để chống ngắt quãng 6 tiếng của GitHub
     - cron: '0 */5 * * *'
@@ -27,16 +27,16 @@ jobs:
         with:
           node-version: 18
 
-      - name: Cài đặt thư viện bedrock-protocol
+      - name: Cài đặt thư viện Mineflayer
         run: npm install
 
-      - name: Chạy Bot Bedrock Vô Hạn (Anti Crash)
+      - name: Chạy Bot Java Vô Hạn (nhinmegi)
         env:
           SERVER_HOST: ${{ github.event.inputs.server_host || 'drum.aternos.host' }}
-          SERVER_PORT: ${{ github.event.inputs.server_port || '19132' }}
+          SERVER_PORT: ${{ github.event.inputs.server_port || '60653' }}
         run: |
           while true; do
-            echo "[*] Đang khởi động tiến trình Bot Bedrock nhinmegi..."
+            echo "[*] Đang khởi động tiến trình Bot Java nhinmegi..."
             node bot.js || echo "[!] Bot ngắt kết nối, khởi động lại sau 5s..."
             sleep 5
           done
