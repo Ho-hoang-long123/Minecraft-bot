@@ -6,11 +6,18 @@ on:
       server_host:
         description: 'Nhập Host hoặc DynIP Java'
         required: true
-        default: 'Heopeppa.aternos.me'
+        default: 'drum.aternos.host'
       server_port:
         description: 'Nhập Port Java'
         required: true
-        default: '25565'
+        default: '60653'
+      server_version:
+        description: 'Nhập phiên bản Minecraft'
+        required: true
+        default: '1.21'
+  schedule:
+    # Tự động chạy lại cứ sau mỗi 5 tiếng để nối ca mượt mà trước mốc 6 tiếng
+    - cron: '0 */5 * * *'
 
 jobs:
   run-bot:
@@ -27,14 +34,15 @@ jobs:
       - name: Cài đặt thư viện Mineflayer
         run: npm install
 
-      - name: Chạy Bot Vô Hạn
+      - name: Chạy Bot Vô Hạn (Anti Crash)
         env:
-          SERVER_HOST: ${{ github.event.inputs.server_host }}
-          SERVER_PORT: ${{ github.event.inputs.server_port }}
+          SERVER_HOST: ${{ github.event.inputs.server_host || 'drum.aternos.host' }}
+          SERVER_PORT: ${{ github.event.inputs.server_port || '60653' }}
+          SERVER_VERSION: ${{ github.event.inputs.server_version || '1.21' }}
         run: |
           while true; do
-            echo "[*] Đang khởi động bot..."
-            node bot.js || echo "[!] Bot vừa gặp lỗi, tự động khởi động lại sau 5 giây..."
+            echo "[*] Đang khởi động tiến trình Bot..."
+            node bot.js || echo "[!] Bot ngắt kết nối, khởi động lại sau 5s..."
             sleep 5
           done
           
