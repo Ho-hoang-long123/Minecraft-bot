@@ -1,21 +1,19 @@
 const mineflayer = require('mineflayer');
 
-// Bắt toàn bộ lỗi ngầm, không cho bot crash thoát tiến trình
 process.on('uncaughtException', (err) => {
-    console.log('[!] Lỗi ngầm được xử lý:', err.message);
+    console.log('[!] Lỗi ngầm:', err.message);
 });
 
 const CONFIG = {
     host: process.env.SERVER_HOST || 'Heopeppa.aternos.me',
     port: parseInt(process.env.SERVER_PORT || '25565'),
     username: 'AFK_Bot_' + Math.floor(Math.random() * 900 + 100),
-    // Ép nhận diện phiên bản Purpur build 26.3 và tắt kiểm tra ngặt nghèo
-    version: '26.3',
-    checkVersionCompatibility: false
+    // Cố định thẳng bản 1.20.4, nhờ ViaVersion trên Aternos lo phần dịch thuật
+    version: '1.20.4'
 };
 
 function createBot() {
-    console.log(`[+] Đang kết nối tới Server ${CONFIG.host}:${CONFIG.port} (Phiên bản: ${CONFIG.version}) với tên ${CONFIG.username}...`);
+    console.log(`[+] Đang kết nối tới Server ${CONFIG.host}:${CONFIG.port} (Bản ép: ${CONFIG.version}) với tên ${CONFIG.username}...`);
     
     let bot;
     try {
@@ -29,7 +27,7 @@ function createBot() {
     bot.on('spawn', () => {
         console.log(`[✓] Bot ${CONFIG.username} ĐÃ VÀO SERVER THÀNH CÔNG!`);
         
-        // Nhảy mỗi 30 giây để giữ kết nối AFK chống đá ra khỏi server
+        // Nhảy mỗi 30 giây chống AFK
         setInterval(() => {
             if (bot && bot.entity) {
                 bot.setControlState('jump', true);
