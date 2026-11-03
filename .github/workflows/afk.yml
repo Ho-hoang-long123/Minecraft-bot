@@ -1,21 +1,22 @@
-name: Aternos Java AFK Bot (Infinite 24/7)
+name: Aternos Java AFK Bot (Gối Đầu 24/7)
 
 on:
   workflow_dispatch:
     inputs:
       server_host:
-        description: 'Nhập Host hoặc DynIP Java'
+        description: 'Host Java'
         required: true
         default: 'hawkfish.aternos.host'
       server_port:
-        description: 'Nhập Port Java'
+        description: 'Port Java'
         required: true
         default: '11391'
       server_version:
-        description: 'Nhập phiên bản Minecraft'
+        description: 'Phiên bản Minecraft'
         required: true
         default: '1.21'
   schedule:
+    # Tự động gọi ca mới sau mỗi 5 tiếng (gối đầu 1 tiếng với ca cũ 6 tiếng)
     - cron: '0 */5 * * *'
 
 jobs:
@@ -33,14 +34,15 @@ jobs:
       - name: Cài đặt thư viện
         run: npm install
 
-      - name: Chạy Bot Vô Hạn (Anti-Crash)
+      - name: Chạy Bot Vô Hạn (Tự chờ Server Bật)
         env:
           SERVER_HOST: ${{ github.event.inputs.server_host || 'hawkfish.aternos.host' }}
           SERVER_PORT: ${{ github.event.inputs.server_port || '11391' }}
           SERVER_VERSION: ${{ github.event.inputs.server_version || '1.21' }}
         run: |
           while true; do
-            echo "[*] Đang khởi động tiến trình Bot..."
-            node bot.js || echo "[!] Bot bị ngắt kết nối, đang khởi động lại sau 5 giây..."
-            sleep 5
+            echo "[*] Đang khởi chạy tiến trình Bot..."
+            node bot.js || echo "[!] Ngắt kết nối hoặc Server chưa xong, thử lại sau 10s..."
+            sleep 10
           done
+          
