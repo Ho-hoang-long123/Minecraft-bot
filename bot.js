@@ -1,53 +1,50 @@
 const mineflayer = require('mineflayer');
 
-process.on('uncaughtException', (err) => {
-    console.log('[!] Lỗi ngầm:', err.message);
-});
-
+// Cấu hình thông tin Server
 const CONFIG = {
     host: process.env.SERVER_HOST || 'drum.aternos.host',
     port: parseInt(process.env.SERVER_PORT || '60653'),
+    // Tự đổi tên ngẫu nhiên mỗi lần chạy để tránh trùng khi nối ca 5h
     username: 'AFK_Bot_' + Math.floor(Math.random() * 900 + 100),
     version: process.env.SERVER_VERSION || '1.21',
-    auth: 'offline',               // Bắt buộc cho server Aternos tắt online-mode
-    keepAlive: true,              // Giữ kết nối socket liên tục
+    auth: 'offline',
     checkVersionCompatibility: false
 };
 
 function createBot() {
-    console.log(`[+] Đang kết nối tới Server ${CONFIG.host}:${CONFIG.port} (Bản: ${CONFIG.version}) với tên ${CONFIG.username}...`);
-    
-    let bot;
-    try {
-        bot = mineflayer.createBot(CONFIG);
-    } catch (err) {
-        console.log(`[!] Lỗi khởi tạo: ${err.message}. Thử lại sau 15s...`);
-        setTimeout(createBot, 15000);
-        return;
-    }
+    console.log(`[+] Đang kết nối tới ${CONFIG.host}:${CONFIG.port} với tên ${CONFIG.username}...`);
 
+    const bot = mineflayer.createBot(CONFIG);
+
+    // Khi bot vào thành công
     bot.on('spawn', () => {
         console.log(`[✓] Bot ${CONFIG.username} ĐÃ VÀO SERVER THÀNH CÔNG!`);
         
-        // Nhảy mỗi 30 giây để chống AFK kick
+        // Nhảy nhẹ mỗi 30s để chống bị server kick vì AFK
         setInterval(() => {
             if (bot && bot.entity) {
                 bot.setControlState('jump', true);
-                setTimeout(() => {
-                    if (bot) bot.setControlState('jump', false);
-                }, 500);
+                setTimeout(() => bot.setControlState('jump', false), 500);
             }
         }, 30000);
     });
 
+    // Lắng nghe khung chat (tùy chọn log ra màn hình Actions để theo dõi)
+    bot.on('chat', (username, message) => {
+        if (username === bot.username) return;
+        console.log(`[Chat] <${username}> ${message}`);
+    });
+
+    // Tự khởi động lại nếu bị ngắt kết nối đột ngột trong game
     bot.on('end', (reason) => {
-        console.log(`[-] Bị ngắt kết nối: ${reason}. Đang thử kết nối lại sau 15 giây...`);
+        console.log(`[!] Bot bị ngắt kết nối (Lý do: ${reason}). Đang kết nối lại sau 15s...`);
         setTimeout(createBot, 15000);
     });
 
     bot.on('error', (err) => {
-        console.log(`[!] Lỗi socket/kết nối: ${err.message}`);
+        console.log(`[!] Lỗi Bot: ${err.message}`);
     });
 }
 
+// Khởi chạy
 createBot();
