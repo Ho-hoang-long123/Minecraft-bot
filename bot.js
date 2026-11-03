@@ -1,10 +1,9 @@
 const mineflayer = require('mineflayer');
 
-// Cấu hình thông tin Server
+// Lấy thông tin từ biến môi trường của GitHub Actions hoặc file .env
 const CONFIG = {
-    host: process.env.SERVER_HOST || 'drum.aternos.host',
-    port: parseInt(process.env.SERVER_PORT || '60653'),
-    // Tự đổi tên ngẫu nhiên mỗi lần chạy để tránh trùng khi nối ca 5h
+    host: process.env.SERVER_HOST || 'hawkfish.aternos.host',
+    port: parseInt(process.env.SERVER_PORT || '11391'),
     username: 'AFK_Bot_' + Math.floor(Math.random() * 900 + 100),
     version: process.env.SERVER_VERSION || '1.21',
     auth: 'offline',
@@ -16,11 +15,10 @@ function createBot() {
 
     const bot = mineflayer.createBot(CONFIG);
 
-    // Khi bot vào thành công
     bot.on('spawn', () => {
         console.log(`[✓] Bot ${CONFIG.username} ĐÃ VÀO SERVER THÀNH CÔNG!`);
         
-        // Nhảy nhẹ mỗi 30s để chống bị server kick vì AFK
+        // Nhảy nhẹ mỗi 30s để chống bị đá ra vì AFK
         setInterval(() => {
             if (bot && bot.entity) {
                 bot.setControlState('jump', true);
@@ -29,13 +27,12 @@ function createBot() {
         }, 30000);
     });
 
-    // Lắng nghe khung chat (tùy chọn log ra màn hình Actions để theo dõi)
     bot.on('chat', (username, message) => {
         if (username === bot.username) return;
         console.log(`[Chat] <${username}> ${message}`);
     });
 
-    // Tự khởi động lại nếu bị ngắt kết nối đột ngột trong game
+    // Xử lý khi bị ngắt kết nối
     bot.on('end', (reason) => {
         console.log(`[!] Bot bị ngắt kết nối (Lý do: ${reason}). Đang kết nối lại sau 15s...`);
         setTimeout(createBot, 15000);
@@ -46,5 +43,4 @@ function createBot() {
     });
 }
 
-// Khởi chạy
 createBot();
