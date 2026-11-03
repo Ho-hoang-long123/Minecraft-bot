@@ -5,21 +5,23 @@ process.on('uncaughtException', (err) => {
 });
 
 const CONFIG = {
-    host: process.env.SERVER_HOST || 'Heopeppa.aternos.me',
-    port: parseInt(process.env.SERVER_PORT || '25565'),
+    host: process.env.SERVER_HOST || 'drum.aternos.host',
+    port: parseInt(process.env.SERVER_PORT || '60653'),
     username: 'AFK_Bot_' + Math.floor(Math.random() * 900 + 100),
-    // Nâng lên 1.21 vì server Purpur hiện tại thường chạy nền 1.21+
-    version: '1.21'
+    version: process.env.SERVER_VERSION || '1.21',
+    auth: 'offline',               // Bắt buộc cho server Aternos tắt online-mode
+    keepAlive: true,              // Giữ kết nối socket liên tục
+    checkVersionCompatibility: false
 };
 
 function createBot() {
-    console.log(`[+] Đang kết nối tới Server ${CONFIG.host}:${CONFIG.port} (Bản ép: ${CONFIG.version}) với tên ${CONFIG.username}...`);
+    console.log(`[+] Đang kết nối tới Server ${CONFIG.host}:${CONFIG.port} (Bản: ${CONFIG.version}) với tên ${CONFIG.username}...`);
     
     let bot;
     try {
         bot = mineflayer.createBot(CONFIG);
     } catch (err) {
-        console.log(`[!] Lỗi khởi tạo bot: ${err.message}. Thử lại sau 15s...`);
+        console.log(`[!] Lỗi khởi tạo: ${err.message}. Thử lại sau 15s...`);
         setTimeout(createBot, 15000);
         return;
     }
@@ -27,7 +29,7 @@ function createBot() {
     bot.on('spawn', () => {
         console.log(`[✓] Bot ${CONFIG.username} ĐÃ VÀO SERVER THÀNH CÔNG!`);
         
-        // Nhảy mỗi 30 giây chống AFK
+        // Nhảy mỗi 30 giây để chống AFK kick
         setInterval(() => {
             if (bot && bot.entity) {
                 bot.setControlState('jump', true);
@@ -44,7 +46,7 @@ function createBot() {
     });
 
     bot.on('error', (err) => {
-        console.log(`[!] Lỗi kết nối: ${err.message}`);
+        console.log(`[!] Lỗi socket/kết nối: ${err.message}`);
     });
 }
 
