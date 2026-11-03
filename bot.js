@@ -8,8 +8,8 @@ const CONFIG = {
     host: process.env.SERVER_HOST || 'Heopeppa.aternos.me',
     port: parseInt(process.env.SERVER_PORT || '25565'),
     username: 'AFK_Bot_' + Math.floor(Math.random() * 900 + 100),
-    // Cố định thẳng bản 1.20.4, nhờ ViaVersion trên Aternos lo phần dịch thuật
-    version: '1.20.4'
+    // Nâng lên 1.21 vì server Purpur hiện tại thường chạy nền 1.21+
+    version: '1.21'
 };
 
 function createBot() {
