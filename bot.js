@@ -6,13 +6,15 @@ process.on('uncaughtException', (err) => {
 
 const CONFIG = {
     host: process.env.SERVER_HOST || 'drum.aternos.host',
-    port: parseInt(process.env.SERVER_PORT || '19132'), // Port Bedrock riêng trên Aternos
-    username: 'nhinmegi_' + Math.floor(Math.random() * 90 + 10), // Tên bot: nhinmegi
-    offline: true // Bắt buộc cho server Cracked
+    port: parseInt(process.env.SERVER_PORT || '19132'),
+    username: 'nhinmegi_' + Math.floor(Math.random() * 90 + 10),
+    offline: true,
+    // Ép kết nối thẳng, bỏ qua bước discovery để tránh lỗi timeout/rejected
+    skipPing: true
 };
 
 function createBot() {
-    console.log(`[+] Đang kết nối Bedrock tới ${CONFIG.host}:${CONFIG.port} với tên ${CONFIG.username}...`);
+    console.log(`[+] Đang kết nối trực tiếp Bedrock tới ${CONFIG.host}:${CONFIG.port} với tên ${CONFIG.username}...`);
 
     let client;
     try {
