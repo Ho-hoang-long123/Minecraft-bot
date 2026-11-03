@@ -1,36 +1,46 @@
 const mineflayer = require('mineflayer');
 
+// Bắt toàn bộ lỗi ngầm, tuyệt đối không cho bot crash thoát tiến trình
 process.on('uncaughtException', (err) => {
-    console.log('[!] Lỗi ngầm:', err.message);
+    console.log('[!] Lỗi ngầm được xử lý:', err.message);
 });
 
 const CONFIG = {
     host: process.env.SERVER_HOST || 'Heopeppa.aternos.me',
     port: parseInt(process.env.SERVER_PORT || '25565'),
     username: 'AFK_Bot_' + Math.floor(Math.random() * 900 + 100),
-    // QUAN TRỌNG: Để false để bot tự động dò theo server Purpur 26.3
-    version: false 
+    // KHÔNG ĐỂ false! Đặt cố định 1.20.4 để ViaVersion xử lý
+    version: process.env.SERVER_VERSION || '1.20.4'
 };
 
 function createBot() {
-    console.log(`[+] Đang kết nối tới Purpur Server ${CONFIG.host}:${CONFIG.port} với tên ${CONFIG.username}...`);
+    console.log(`[+] Đang kết nối tới Server ${CONFIG.host}:${CONFIG.port} (Phiên bản cố định: ${CONFIG.version}) với tên ${CONFIG.username}...`);
     
-    const bot = mineflayer.createBot(CONFIG);
+    let bot;
+    try {
+        bot = mineflayer.createBot(CONFIG);
+    } catch (err) {
+        console.log(`[!] Lỗi khởi tạo bot: ${err.message}. Thử lại sau 15s...`);
+        setTimeout(createBot, 15000);
+        return;
+    }
 
     bot.on('spawn', () => {
-        console.log(`[✓] Bot ${CONFIG.username} đã vào server thành công!`);
+        console.log(`[✓] Bot ${CONFIG.username} ĐÃ VÀO SERVER THÀNH CÔNG!`);
         
-        // Nhảy mỗi 30 giây chống AFK
+        // Nhảy mỗi 30 giây để giữ kết nối AFK
         setInterval(() => {
-            if (bot.entity) {
+            if (bot && bot.entity) {
                 bot.setControlState('jump', true);
-                setTimeout(() => bot.setControlState('jump', false), 500);
+                setTimeout(() => {
+                    if (bot) bot.setControlState('jump', false);
+                }, 500);
             }
         }, 30000);
     });
 
     bot.on('end', (reason) => {
-        console.log(`[-] Bị ngắt kết nối: ${reason}. Đang kết nối lại sau 15 giây...`);
+        console.log(`[-] Bị ngắt kết nối: ${reason}. Đang thử kết nối lại sau 15 giây...`);
         setTimeout(createBot, 15000);
     });
 
