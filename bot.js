@@ -6,8 +6,8 @@ process.on('uncaughtException', (err) => {
 
 const CONFIG = {
     host: process.env.SERVER_HOST || 'drum.aternos.host',
-    port: parseInt(process.env.SERVER_PORT || '19132'), // Port Bedrock trên Aternos
-    username: 'nhinmegi_' + Math.floor(Math.random() * 90 + 10), // Tên bot chính chủ của bạn
+    port: parseInt(process.env.SERVER_PORT || '19132'), // Port Bedrock riêng trên Aternos
+    username: 'nhinmegi_' + Math.floor(Math.random() * 90 + 10), // Tên bot: nhinmegi
     offline: true // Bắt buộc cho server Cracked
 };
 
