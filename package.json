@@ -1,8 +1,8 @@
 {
-  "name": "aternos-bedrock-bot",
+  "name": "aternos-java-afk-bot",
   "version": "1.0.0",
   "main": "bot.js",
   "dependencies": {
-    "bedrock-protocol": "latest"
+    "mineflayer": "latest"
   }
 }
