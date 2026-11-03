@@ -9,8 +9,8 @@ const CONFIG = {
     host: process.env.SERVER_HOST || 'Heopeppa.aternos.me',
     port: parseInt(process.env.SERVER_PORT || '25565'),
     username: 'AFK_Bot_' + Math.floor(Math.random() * 900 + 100),
-    // Ép phiên bản bằng đúng chuỗi server trả về và tắt kiểm tra phiên bản ngặt nghèo
-    version: process.env.SERVER_VERSION || '26.3',
+    // Ép nhận diện phiên bản Purpur build 26.3 và tắt kiểm tra ngặt nghèo
+    version: '26.3',
     checkVersionCompatibility: false
 };
 
@@ -21,7 +21,7 @@ function createBot() {
     try {
         bot = mineflayer.createBot(CONFIG);
     } catch (err) {
-        console.log(`[!] Lỗi khởi tạo bot: {err.message}. Thử lại sau 15s...`);
+        console.log(`[!] Lỗi khởi tạo bot: ${err.message}. Thử lại sau 15s...`);
         setTimeout(createBot, 15000);
         return;
     }
@@ -29,7 +29,7 @@ function createBot() {
     bot.on('spawn', () => {
         console.log(`[✓] Bot ${CONFIG.username} ĐÃ VÀO SERVER THÀNH CÔNG!`);
         
-        // Nhảy mỗi 30 giây để giữ kết nối AFK
+        // Nhảy mỗi 30 giây để giữ kết nối AFK chống đá ra khỏi server
         setInterval(() => {
             if (bot && bot.entity) {
                 bot.setControlState('jump', true);
@@ -46,7 +46,7 @@ function createBot() {
     });
 
     bot.on('error', (err) => {
-        console.log(`[!] Lỗi kết nối: {err.message}`);
+        console.log(`[!] Lỗi kết nối: ${err.message}`);
     });
 }
 
