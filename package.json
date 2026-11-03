@@ -1,8 +1,7 @@
-{
-  "name": "aternos-java-afk-bot",
-  "version": "1.0.0",
-  "main": "bot.js",
-  "dependencies": {
-    "mineflayer": "latest"
-  }
-}
+    const bot = mineflayer.createBot({
+        host: host,
+        port: port,
+        username: username,
+        auth: 'offline',
+        version: '1.21.1' // Đổi thành phiên bản chuẩn của server Paper (ví dụ: 1.21.1 hoặc 1.21)
+    });
