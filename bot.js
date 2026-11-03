@@ -6,8 +6,8 @@ process.on('uncaughtException', (err) => {
 
 function createBot() {
     const username = 'nhinmegi_' + Math.floor(Math.random() * 900 + 100);
-    const host = process.env.SERVER_HOST || 'drum.aternos.host';
-    const port = parseInt(process.env.SERVER_PORT || '60653');
+    const host = process.env.SERVER_HOST || 'kokopu.aternos.host';
+    const port = parseInt(process.env.SERVER_PORT || '11391');
 
     console.log(`[+] Đang kết nối Java tới ${host}:${port} với tên ${username}...`);
 
@@ -15,8 +15,8 @@ function createBot() {
         host: host,
         port: port,
         username: username,
-        auth: 'offline', // Bắt buộc cho server Cracked
-        version: false   // TỰ ĐỘNG nhận diện phiên bản server (Paper/Fabric/Purpur mới nhất)
+        auth: 'offline',     // Bắt buộc cho server Cracked
+        version: '1.21.1'    // Ép cứng phiên bản chuẩn (hoặc '1.21' tùy theo server Paper của bạn)
     });
 
     bot.on('spawn', () => {
