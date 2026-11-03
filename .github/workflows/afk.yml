@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       server_host:
-        description: 'Nhập Host hoặc DynIP Java (VD: server.aternos.host)'
+        description: 'Nhập Host hoặc DynIP Java'
         required: true
         default: 'Heopeppa.aternos.me'
       server_port:
-        description: 'Nhập Port Java (VD: 25565 hoặc cổng DynIP)'
+        description: 'Nhập Port Java'
         required: true
         default: '25565'
 
@@ -27,7 +27,7 @@ jobs:
       - name: Cài đặt thư viện Mineflayer
         run: npm install
 
-      - name: Chạy Bot Vô Hạn (Không bao giờ Complete)
+      - name: Chạy Bot Vô Hạn
         env:
           SERVER_HOST: ${{ github.event.inputs.server_host }}
           SERVER_PORT: ${{ github.event.inputs.server_port }}
