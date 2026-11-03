@@ -5,7 +5,7 @@ process.on('uncaughtException', (err) => {
     console.log('[!] Lỗi ngầm:', err.message);
 });
 
-const rawHost = process.env.SERVER_HOST || 'drum.aternos.host';
+const rawHost = process.env.SERVER_HOST || 'beardfish.aternos.host';
 const port = parseInt(process.env.SERVER_PORT || '19132');
 const username = 'nhinmegi_' + Math.floor(Math.random() * 90 + 10);
 
@@ -19,14 +19,8 @@ function startBot(targetIp) {
             port: port,
             username: username,
             offline: true,
-            skipPing: false,               // Bật lại ping nhưng ép MTU chuẩn
-            conntype: 'raknet',             // Ép kiểu kết nối RakNet nguyên bản
-            raknetBackend: 'js',            // Dùng backend JS thuần để tránh lỗi thư viện C++
-            connectTimeout: 45000,          // Nâng timeout lên 45 giây cho mạng Cloud
-            raknetOptions: {
-                maxPacketsPerFrame: 50,
-                mtu: 1400                   // Fix lỗi tràn khung truyền UDP trên Aternos Firewall
-            }
+            skipPing: true,        // Bỏ qua ping tự động để tránh treo socket
+            connectTimeout: 45000  // Tăng thời gian chờ kết nối lên 45s
         });
     } catch (err) {
         console.log(`[!] Khởi tạo thất bại: ${err.message}. Thử lại sau 15s...`);
@@ -35,7 +29,7 @@ function startBot(targetIp) {
     }
 
     client.on('join', () => {
-        console.log(`[✓] KHỦNG KHIẾP CHƯA! Bot Bedrock ${username} ĐÃ CHUI VÀO SERVER THÀNH CÔNG!`);
+        console.log(`[✓] Bot Bedrock ${username} ĐÃ CHUI VÀO SERVER THÀNH CÔNG!`);
     });
 
     client.on('end', (reason) => {
