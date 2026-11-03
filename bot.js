@@ -1,6 +1,6 @@
 const mineflayer = require('mineflayer');
 
-// Bắt toàn bộ lỗi ngầm, tuyệt đối không cho bot crash thoát tiến trình
+// Bắt toàn bộ lỗi ngầm, không cho bot crash thoát tiến trình
 process.on('uncaughtException', (err) => {
     console.log('[!] Lỗi ngầm được xử lý:', err.message);
 });
@@ -9,18 +9,19 @@ const CONFIG = {
     host: process.env.SERVER_HOST || 'Heopeppa.aternos.me',
     port: parseInt(process.env.SERVER_PORT || '25565'),
     username: 'AFK_Bot_' + Math.floor(Math.random() * 900 + 100),
-    // KHÔNG ĐỂ false! Đặt cố định 1.20.4 để ViaVersion xử lý
-    version: process.env.SERVER_VERSION || '1.20.4'
+    // Ép phiên bản bằng đúng chuỗi server trả về và tắt kiểm tra phiên bản ngặt nghèo
+    version: process.env.SERVER_VERSION || '26.3',
+    checkVersionCompatibility: false
 };
 
 function createBot() {
-    console.log(`[+] Đang kết nối tới Server ${CONFIG.host}:${CONFIG.port} (Phiên bản cố định: ${CONFIG.version}) với tên ${CONFIG.username}...`);
+    console.log(`[+] Đang kết nối tới Server ${CONFIG.host}:${CONFIG.port} (Phiên bản: ${CONFIG.version}) với tên ${CONFIG.username}...`);
     
     let bot;
     try {
         bot = mineflayer.createBot(CONFIG);
     } catch (err) {
-        console.log(`[!] Lỗi khởi tạo bot: ${err.message}. Thử lại sau 15s...`);
+        console.log(`[!] Lỗi khởi tạo bot: {err.message}. Thử lại sau 15s...`);
         setTimeout(createBot, 15000);
         return;
     }
@@ -45,7 +46,7 @@ function createBot() {
     });
 
     bot.on('error', (err) => {
-        console.log(`[!] Lỗi kết nối: ${err.message}`);
+        console.log(`[!] Lỗi kết nối: {err.message}`);
     });
 }
 
