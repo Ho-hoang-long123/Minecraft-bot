@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       server_host:
-        description: 'Nhập Host hoặc DynIP Java (VD: drum.aternos.host)'
+        description: 'Nhập Host hoặc DynIP Java (VD: kokopu.aternos.host)'
         required: true
-        default: 'drum.aternos.host'
+        default: 'kokopu.aternos.host'
       server_port:
         description: 'Nhập Port Java (5 chữ số trên Aternos)'
         required: true
-        default: '60653'
+        default: '11391'
   schedule:
     # Tự động chạy lại cứ sau mỗi 5 tiếng để chống ngắt quãng 6 tiếng của GitHub
     - cron: '0 */5 * * *'
@@ -32,8 +32,8 @@ jobs:
 
       - name: Chạy Bot Java Vô Hạn (nhinmegi)
         env:
-          SERVER_HOST: ${{ github.event.inputs.server_host || 'drum.aternos.host' }}
-          SERVER_PORT: ${{ github.event.inputs.server_port || '60653' }}
+          SERVER_HOST: ${{ github.event.inputs.server_host || 'kokopu.aternos.host' }}
+          SERVER_PORT: ${{ github.event.inputs.server_port || '11391' }}
         run: |
           while true; do
             echo "[*] Đang khởi động tiến trình Bot Java nhinmegi..."
