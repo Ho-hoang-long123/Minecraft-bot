@@ -1,4 +1,4 @@
-name: Aternos Java AFK Bot
+name: Aternos Java AFK Bot (Infinite)
 
 on:
   workflow_dispatch:
@@ -27,9 +27,14 @@ jobs:
       - name: Cài đặt thư viện Mineflayer
         run: npm install
 
-      - name: Chạy Bot Java
+      - name: Chạy Bot Vô Hạn (Không bao giờ Complete)
         env:
           SERVER_HOST: ${{ github.event.inputs.server_host }}
           SERVER_PORT: ${{ github.event.inputs.server_port }}
-        run: node bot.js
-        
+        run: |
+          while true; do
+            echo "[*] Đang khởi động bot..."
+            node bot.js || echo "[!] Bot vừa gặp lỗi, tự động khởi động lại sau 5 giây..."
+            sleep 5
+          done
+          
