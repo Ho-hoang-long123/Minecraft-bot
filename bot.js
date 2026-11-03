@@ -1,53 +1,36 @@
-const bedrock = require('bedrock-protocol');
-const dns = require('dns');
+const mineflayer = require('mineflayer');
 
 process.on('uncaughtException', (err) => {
     console.log('[!] Lỗi ngầm:', err.message);
 });
 
-const rawHost = process.env.SERVER_HOST || 'beardfish.aternos.host';
-const port = parseInt(process.env.SERVER_PORT || '19132');
-const username = 'nhinmegi_' + Math.floor(Math.random() * 90 + 10);
+function createBot() {
+    const username = 'nhinmegi_' + Math.floor(Math.random() * 900 + 100);
+    const host = process.env.SERVER_HOST || 'drum.aternos.host';
+    const port = parseInt(process.env.SERVER_PORT || '60653');
 
-function startBot(targetIp) {
-    console.log(`[+] Đang tạo kết nối Bedrock UDP tới ${targetIp}:${port} (Bot: ${username})...`);
+    console.log(`[+] Đang kết nối Java tới ${host}:${port} với tên ${username}...`);
 
-    let client;
-    try {
-        client = bedrock.createClient({
-            host: targetIp,
-            port: port,
-            username: username,
-            offline: true,
-            skipPing: true,        // Bỏ qua ping tự động để tránh treo socket
-            connectTimeout: 45000  // Tăng thời gian chờ kết nối lên 45s
-        });
-    } catch (err) {
-        console.log(`[!] Khởi tạo thất bại: ${err.message}. Thử lại sau 15s...`);
-        setTimeout(connect, 15000);
-        return;
-    }
-
-    client.on('join', () => {
-        console.log(`[✓] Bot Bedrock ${username} ĐÃ CHUI VÀO SERVER THÀNH CÔNG!`);
+    const bot = mineflayer.createBot({
+        host: host,
+        port: port,
+        username: username,
+        auth: 'offline', // Bắt buộc cho server Cracked
+        version: false   // TỰ ĐỘNG nhận diện phiên bản server (Paper/Fabric/Purpur mới nhất)
     });
 
-    client.on('end', (reason) => {
-        console.log(`[-] Bot bị ngắt kết nối: ${reason}. Thử lại sau 15s...`);
-        setTimeout(connect, 15000);
+    bot.on('spawn', () => {
+        console.log(`[✓] KHỦNG KHIẾP CHƯA! Bot Java ${bot.username} ĐÃ VÀO SERVER THÀNH CÔNG!`);
     });
 
-    client.on('error', (err) => {
-        console.log(`[!] Lỗi socket/kết nối: ${err.message}`);
+    bot.on('end', (reason) => {
+        console.log(`[-] Bị ngắt kết nối do: ${reason}. Đang tự động kết nối lại sau 15 giây...`);
+        setTimeout(createBot, 15000);
+    });
+
+    bot.on('error', (err) => {
+        console.log(`[!] Lỗi kết nối: ${err.message}`);
     });
 }
 
-function connect() {
-    dns.lookup(rawHost, (err, address) => {
-        const ipToUse = (!err && address) ? address : rawHost;
-        if (address) console.log(`[*] DNS Resolved: ${rawHost} -> ${address}`);
-        startBot(ipToUse);
-    });
-}
-
-connect();
+createBot();
