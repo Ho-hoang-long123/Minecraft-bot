@@ -6,7 +6,7 @@ on:
       server_host:
         description: 'Host Java'
         required: false
-        default: 'hawkfish.aternos.host'
+        default: 'dottyback.aternos.host'
       server_port:
         description: 'Port Java'
         required: false
@@ -32,14 +32,24 @@ jobs:
         with:
           node-version: 18
 
-      - name: Cài đặt thư viện
-        run: npm install
+      # --- BẮT ĐẦU PHẦN CACHE: Giúp cài npm siêu tốc ---
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      # -----------------------------------------------
+
+      - name: Cài đặt thư viện siêu tốc
+        run: npm ci || npm install --prefer-offline
 
       - name: Chạy Bot & Đợi 5 tiếng để gọi Workflow tiếp theo
         env:
-          SERVER_HOST: ${{ github.event.inputs.server_host || 'hawkfish.aternos.host' }}
+          SERVER_HOST: ${{ github.event.inputs.server_host || 'dottyback.aternos.host' }}
           SERVER_PORT: ${{ github.event.inputs.server_port || '11391' }}
-          SERVER_VERSION: ${{ github.event.inputs.server_version || '1.21' }}
+          SERVER_VERSION: ${{ github.event.inputs.server_version || '1.21.11' }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO_OWNER: ${{ github.repository_owner }}
           REPO_NAME: ${{ github.event.repository.name }}
@@ -53,7 +63,7 @@ jobs:
           echo "[*] Bot đã chạy. Đang đếm ngược 5 tiếng (18000s) để kích hoạt Workflow tiếp theo..."
           sleep 18000
 
-          # 3. Sau 5 tiếng, gửi lệnh kích hoạt Workflow mới VỚI ĐÚNG INPUT CỦA WORKFLOW HIỆN TẠI
+          # 3. Sau 5 tiếng, gửi lệnh kích hoạt Workflow mới VỚI ĐÚNG INPUT
           echo "[+] Đã đủ 5 tiếng! Đang truyền IP/Port hiện tại và gọi Workflow kế tiếp..."
           curl -X POST \
             -H "Accept: application/vnd.github+json" \
@@ -74,4 +84,3 @@ jobs:
           
           # Tắt bot cũ
           kill $BOT_PID || true
-          
