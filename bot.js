@@ -7,8 +7,7 @@ const CONFIG = {
     version: process.env.SERVER_VERSION || '1.21',
     auth: 'offline',
     checkVersionCompatibility: false,
-    // Tăng thời gian chờ (timeout) lên 60 giây để chống rớt mạng giữa chừng trên GitHub
-    defaultTimeout: 60000 
+    defaultTimeout: 60000 // Tăng thời gian chờ timeout lên 60s
 };
 
 function createBot() {
@@ -17,38 +16,45 @@ function createBot() {
     const bot = mineflayer.createBot(CONFIG);
 
     bot.on('spawn', () => {
-        console.log(`[✓] Bot ${CONFIG.username} ĐÃ VÀO SERVER VÀ HOẠT ĐỘNG!`);
+        console.log(`[✓] Bot ${CONFIG.username} ĐÃ VÀO SERVER VÀ HOẠT ĐỘNG ỔN ĐỊNH!`);
         
-        // Nhảy nhẹ mỗi 30s chống kick AFK
-        setInterval(() => {
-            if (bot && bot.entity) {
-                bot.setControlState('jump', true);
-                setTimeout(() => bot.setControlState('jump', false), 500);
-            }
-        }, 30000);
+        // Cơ chế chống AFK tự nhiên (Thay vì chỉ nhảy, bot sẽ quay đầu và nhìn ngẫu nhiên giống người thật)
+        const antiAfkInterval = setInterval(() => {
+            if (!bot || !bot.entity) return;
+
+            // Chọn ngẫu nhiên góc quay đầu (yaw và pitch)
+            const randomYaw = Math.random() * Math.PI * 2;
+            const randomPitch = (Math.random() * 0.5) - 0.25; // Nhìn lên xuống nhẹ nhàng
+
+            bot.look(randomYaw, randomPitch, true, () => {
+                // Thỉnh thoảng nhún nhảy nhẹ ngẫu nhiên
+                if (Math.random() > 0.5) {
+                    bot.setControlState('jump', true);
+                    setTimeout(() => bot.setControlState('jump', false), 400);
+                }
+            });
+        }, 20000); // Thực hiện mỗi 20 giây
+
+        // Dọn dẹp interval khi bot ngắt kết nối để tránh lỗi tràn bộ nhớ
+        bot.once('end', () => {
+            clearInterval(antiAfkInterval);
+        });
     });
 
-    // Bắt sự kiện khi bot bị server đá ra (Kick) để xem nguyên nhân
+    // Bắt lỗi cụ thể nếu bị server đá ra
     bot.on('kicked', (reason) => {
-        console.log(`[!] BỊ SERVER KICK! Lý do:`, JSON.stringify(reason));
+        console.log(`[!] BỊ SERVER KICK! Lý do chi tiết:`, JSON.stringify(reason));
     });
 
     bot.on('chat', (username, message) => {
         if (username === bot.username) return;
         console.log(`[Chat] <${username}> ${message}`);
-
-        // [TÙY CHỌN] Nếu server có AuthMe và yêu cầu đăng nhập, bot sẽ tự động gõ lệnh đăng nhập ở đây
-        // if (message.includes('register')) {
-        //     bot.chat('/register MatKhauCuaBan MatKhauCuaBan');
-        // }
-        // if (message.includes('login')) {
-        //     bot.chat('/login MatKhauCuaBan');
-        // }
     });
 
+    // Tự động kết nối lại ngay lập tức khi mất kết nối
     bot.on('end', (reason) => {
-        console.log(`[!] Ngắt kết nối (Lý do: ${reason}). Đang vào lại sau 15s...`);
-        setTimeout(createBot, 15000);
+        console.log(`[!] Ngắt kết nối (Lý do: ${reason}). Đang kết nối lại sau 10 giây...`);
+        setTimeout(createBot, 10000);
     });
 
     bot.on('error', (err) => {
