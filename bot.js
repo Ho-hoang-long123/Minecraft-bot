@@ -2,11 +2,11 @@ const mineflayer = require('mineflayer');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
 
 const CONFIG = {
-    host: process.env.SERVER_HOST || 'dottyback.aternos.host',
+    host: process.env.SERVER_HOST || 'leaffish.aternos.host',
     port: parseInt(process.env.SERVER_PORT || '11391'),
     username: 'AFK_Bot_' + Math.floor(Math.random() * 900 + 100),
-    // LẤY ĐÚNG PHIÊN BẢN TỪ GITHUB ACTIONS HOẶC MẶC ĐỊNH 1.21.4
-    version: process.env.SERVER_VERSION || '1.21.4', 
+    // Cố định phiên bản bot ở 1.21, nhờ ViaVersion/ViaBackwards trên server để dịch chuyển tương thích
+    version: '1.21', 
     auth: 'offline',
     checkVersionCompatibility: false,
     defaultTimeout: 60000
