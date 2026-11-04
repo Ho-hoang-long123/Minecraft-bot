@@ -1,23 +1,24 @@
-name: Aternos Java AFK Bot (Gối Đầu 24/7)
+name: Aternos Java AFK Bot (Self-Trigger Chain 24/7)
 
 on:
   workflow_dispatch:
     inputs:
       server_host:
         description: 'Host Java'
-        required: true
+        required: false
         default: 'hawkfish.aternos.host'
       server_port:
         description: 'Port Java'
-        required: true
+        required: false
         default: '11391'
       server_version:
         description: 'Phiên bản Minecraft'
-        required: true
+        required: false
         default: '1.21'
-  schedule:
-    # Tự động gọi ca mới sau mỗi 5 tiếng (gối đầu 1 tiếng với ca cũ 6 tiếng)
-    - cron: '0 */5 * * *'
+
+permissions:
+  actions: write
+  contents: read
 
 jobs:
   run-bot:
@@ -34,15 +35,43 @@ jobs:
       - name: Cài đặt thư viện
         run: npm install
 
-      - name: Chạy Bot Vô Hạn (Tự chờ Server Bật)
+      - name: Chạy Bot & Đợi 5 tiếng để gọi Workflow tiếp theo
         env:
           SERVER_HOST: ${{ github.event.inputs.server_host || 'hawkfish.aternos.host' }}
           SERVER_PORT: ${{ github.event.inputs.server_port || '11391' }}
           SERVER_VERSION: ${{ github.event.inputs.server_version || '1.21' }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
         run: |
-          while true; do
-            echo "[*] Đang khởi chạy tiến trình Bot..."
-            node bot.js || echo "[!] Ngắt kết nối hoặc Server chưa xong, thử lại sau 10s..."
-            sleep 10
-          done
+          # 1. Chạy Bot ngầm ở background
+          echo "[*] Khởi tạo tiến trình Bot kết nối tới $SERVER_HOST:$SERVER_PORT (v$SERVER_VERSION)..."
+          node bot.js &
+          BOT_PID=$!
+
+          # 2. Ngủ 5 tiếng (18000 giây)
+          echo "[*] Bot đã chạy. Đang đếm ngược 5 tiếng (18000s) để kích hoạt Workflow tiếp theo..."
+          sleep 18000
+
+          # 3. Sau 5 tiếng, gửi lệnh kích hoạt Workflow mới VỚI ĐÚNG INPUT CỦA WORKFLOW HIỆN TẠI
+          echo "[+] Đã đủ 5 tiếng! Đang truyền IP/Port hiện tại và gọi Workflow kế tiếp..."
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/actions/workflows/afk.yml/dispatches \
+            -d "{
+              \"ref\": \"main\",
+              \"inputs\": {
+                \"server_host\": \"$SERVER_HOST\",
+                \"server_port\": \"$SERVER_PORT\",
+                \"server_version\": \"$SERVER_VERSION\"
+              }
+            }" || echo "[!] Lỗi khi gọi Workflow mới!"
+
+          # 4. Chạy nốt 1 tiếng cuối cùng (3600 giây) để gối đầu xong rồi mới tắt
+          echo "[*] Workflow tiếp theo đã được tạo. Workflow hiện tại sẽ chạy nốt 1 tiếng còn lại..."
+          sleep 3600
+          
+          # Tắt bot cũ
+          kill $BOT_PID || true
           
