@@ -2,19 +2,18 @@ const mineflayer = require('mineflayer');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
 
 const CONFIG = {
-    host: process.env.SERVER_HOST || 'firefish.aternos.host',
+    host: process.env.SERVER_HOST || 'dottyback.aternos.host',
     port: parseInt(process.env.SERVER_PORT || '11391'),
     username: 'AFK_Bot_' + Math.floor(Math.random() * 900 + 100),
-    // Ép phiên bản về 1.21 hoặc 1.21.4 để Mineflayer không bị crash
-    version: '1.21.4', 
+    // LẤY ĐÚNG PHIÊN BẢN TỪ GITHUB ACTIONS HOẶC MẶC ĐỊNH 1.21.4
+    version: process.env.SERVER_VERSION || '1.21.4', 
     auth: 'offline',
-    // QUAN TRỌNG: Bật cờ này để cho phép bot vào server có phiên bản mới hơn thư viện
     checkVersionCompatibility: false,
     defaultTimeout: 60000
 };
 
 function createBot() {
-    console.log(`[+] Đang kết nối tới ${CONFIG.host}:${CONFIG.port} với tên ${CONFIG.username}...`);
+    console.log(`[+] Đang kết nối tới ${CONFIG.host}:${CONFIG.port} (Phiên bản: ${CONFIG.version}) với tên ${CONFIG.username}...`);
 
     const bot = mineflayer.createBot(CONFIG);
     bot.loadPlugin(pathfinder);
