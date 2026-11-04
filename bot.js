@@ -1,49 +1,77 @@
 const mineflayer = require('mineflayer');
+const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
 
 const CONFIG = {
-    host: process.env.SERVER_HOST || 'hawkfish.aternos.host',
+    host: process.env.SERVER_HOST || 'firefish.aternos.host',
     port: parseInt(process.env.SERVER_PORT || '11391'),
     username: 'AFK_Bot_' + Math.floor(Math.random() * 900 + 100),
-    version: process.env.SERVER_VERSION || '1.21',
+    // Ép phiên bản về 1.21 hoặc 1.21.4 để Mineflayer không bị crash
+    version: '1.21.4', 
     auth: 'offline',
+    // QUAN TRỌNG: Bật cờ này để cho phép bot vào server có phiên bản mới hơn thư viện
     checkVersionCompatibility: false,
-    defaultTimeout: 60000 // Tăng thời gian chờ timeout lên 60s
+    defaultTimeout: 60000
 };
 
 function createBot() {
     console.log(`[+] Đang kết nối tới ${CONFIG.host}:${CONFIG.port} với tên ${CONFIG.username}...`);
 
     const bot = mineflayer.createBot(CONFIG);
+    bot.loadPlugin(pathfinder);
 
     bot.on('spawn', () => {
-        console.log(`[✓] Bot ${CONFIG.username} ĐÃ VÀO SERVER VÀ HOẠT ĐỘNG ỔN ĐỊNH!`);
+        console.log(`[✓] Bot ${CONFIG.username} ĐÃ VÀO SERVER VÀ AN TOÀN!`);
         
-        // Cơ chế chống AFK tự nhiên (Thay vì chỉ nhảy, bot sẽ quay đầu và nhìn ngẫu nhiên giống người thật)
+        const mcData = require('minecraft-data')(bot.version);
+        const defaultMove = new Movements(bot, mcData);
+        bot.pathfinder.setMovements(defaultMove);
+
+        // Chống AFK tự nhiên (quay đầu, nhìn ngẫu nhiên)
         const antiAfkInterval = setInterval(() => {
             if (!bot || !bot.entity) return;
+            if (bot.pathfinder.isMoving()) return;
 
-            // Chọn ngẫu nhiên góc quay đầu (yaw và pitch)
             const randomYaw = Math.random() * Math.PI * 2;
-            const randomPitch = (Math.random() * 0.5) - 0.25; // Nhìn lên xuống nhẹ nhàng
+            const randomPitch = (Math.random() * 0.5) - 0.25;
 
             bot.look(randomYaw, randomPitch, true, () => {
-                // Thỉnh thoảng nhún nhảy nhẹ ngẫu nhiên
-                if (Math.random() > 0.5) {
+                if (Math.random() > 0.6) {
                     bot.setControlState('jump', true);
                     setTimeout(() => bot.setControlState('jump', false), 400);
                 }
             });
-        }, 20000); // Thực hiện mỗi 20 giây
+        }, 20000);
 
-        // Dọn dẹp interval khi bot ngắt kết nối để tránh lỗi tràn bộ nhớ
+        // Chạy trốn khi có quái vật hoặc người chơi tấn công trong bán kính 6 block
+        const defenseInterval = setInterval(() => {
+            if (!bot || !bot.entity) return;
+
+            const filter = e => (e.type === 'mob' || e.type === 'player') && e.username !== bot.username && bot.entity.position.distanceTo(e.position) < 6;
+            const danger = bot.nearestEntity(filter);
+
+            if (danger) {
+                console.log(`[!] Phát hiện nguy hiểm từ ${danger.username || danger.name}! Đang chạy trốn...`);
+                const dx = bot.entity.position.x - danger.position.x;
+                const dz = bot.entity.position.z - danger.position.z;
+                
+                const escapeGoal = new goals.GoalBlock(
+                    Math.floor(bot.entity.position.x + dx * 3),
+                    Math.floor(bot.entity.position.y),
+                    Math.floor(bot.entity.position.z + dz * 3)
+                );
+                
+                bot.pathfinder.setGoal(escapeGoal, true);
+            }
+        }, 3000);
+
         bot.once('end', () => {
             clearInterval(antiAfkInterval);
+            clearInterval(defenseInterval);
         });
     });
 
-    // Bắt lỗi cụ thể nếu bị server đá ra
     bot.on('kicked', (reason) => {
-        console.log(`[!] BỊ SERVER KICK! Lý do chi tiết:`, JSON.stringify(reason));
+        console.log(`[!] BỊ SERVER KICK! Lý do:`, JSON.stringify(reason));
     });
 
     bot.on('chat', (username, message) => {
@@ -51,9 +79,8 @@ function createBot() {
         console.log(`[Chat] <${username}> ${message}`);
     });
 
-    // Tự động kết nối lại ngay lập tức khi mất kết nối
     bot.on('end', (reason) => {
-        console.log(`[!] Ngắt kết nối (Lý do: ${reason}). Đang kết nối lại sau 10 giây...`);
+        console.log(`[!] Ngắt kết nối (Lý do: ${reason}). Đang kết nối lại sau 10s...`);
         setTimeout(createBot, 10000);
     });
 
