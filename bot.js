@@ -1,13 +1,14 @@
 const mineflayer = require('mineflayer');
 
-// Lấy thông tin từ biến môi trường của GitHub Actions hoặc file .env
 const CONFIG = {
     host: process.env.SERVER_HOST || 'hawkfish.aternos.host',
     port: parseInt(process.env.SERVER_PORT || '11391'),
     username: 'AFK_Bot_' + Math.floor(Math.random() * 900 + 100),
     version: process.env.SERVER_VERSION || '1.21',
     auth: 'offline',
-    checkVersionCompatibility: false
+    checkVersionCompatibility: false,
+    // Tăng thời gian chờ (timeout) lên 60 giây để chống rớt mạng giữa chừng trên GitHub
+    defaultTimeout: 60000 
 };
 
 function createBot() {
@@ -16,9 +17,9 @@ function createBot() {
     const bot = mineflayer.createBot(CONFIG);
 
     bot.on('spawn', () => {
-        console.log(`[✓] Bot ${CONFIG.username} ĐÃ VÀO SERVER THÀNH CÔNG!`);
+        console.log(`[✓] Bot ${CONFIG.username} ĐÃ VÀO SERVER VÀ HOẠT ĐỘNG!`);
         
-        // Nhảy nhẹ mỗi 30s để chống bị đá ra vì AFK
+        // Nhảy nhẹ mỗi 30s chống kick AFK
         setInterval(() => {
             if (bot && bot.entity) {
                 bot.setControlState('jump', true);
@@ -27,19 +28,31 @@ function createBot() {
         }, 30000);
     });
 
+    // Bắt sự kiện khi bot bị server đá ra (Kick) để xem nguyên nhân
+    bot.on('kicked', (reason) => {
+        console.log(`[!] BỊ SERVER KICK! Lý do:`, JSON.stringify(reason));
+    });
+
     bot.on('chat', (username, message) => {
         if (username === bot.username) return;
         console.log(`[Chat] <${username}> ${message}`);
+
+        // [TÙY CHỌN] Nếu server có AuthMe và yêu cầu đăng nhập, bot sẽ tự động gõ lệnh đăng nhập ở đây
+        // if (message.includes('register')) {
+        //     bot.chat('/register MatKhauCuaBan MatKhauCuaBan');
+        // }
+        // if (message.includes('login')) {
+        //     bot.chat('/login MatKhauCuaBan');
+        // }
     });
 
-    // Xử lý khi bị ngắt kết nối
     bot.on('end', (reason) => {
-        console.log(`[!] Bot bị ngắt kết nối (Lý do: ${reason}). Đang kết nối lại sau 15s...`);
+        console.log(`[!] Ngắt kết nối (Lý do: ${reason}). Đang vào lại sau 15s...`);
         setTimeout(createBot, 15000);
     });
 
     bot.on('error', (err) => {
-        console.log(`[!] Lỗi Bot: ${err.message}`);
+        console.log(`[!] Lỗi kết nối: ${err.message}`);
     });
 }
 
