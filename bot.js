@@ -1,99 +1,103 @@
-name: Aternos Java AFK Bot (Self-Trigger Chain 24/7)
+const mineflayer = require('mineflayer');
+const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
 
-on:
-  workflow_dispatch:
-    inputs:
-      server_host:
-        description: 'Host Java'
-        required: false
-        default: 'leaffish.aternos.host'
-      server_port:
-        description: 'Port Java'
-        required: false
-        default: '11391'
-      server_version:
-        description: 'Phiên bản Minecraft'
-        required: false
-        default: '1.21'
-      player_name:
-        description: 'Tên nhân vật (Để trống = Tự động sinh ngẫu nhiên)'
-        required: false
-        default: ''
-      player_uuid:
-        description: 'UUID nhân vật (Tùy chọn)'
-        required: false
-        default: ''
+// Xử lý tên: Ưu tiên lấy từ GitHub Actions, nếu trống tự sinh tên ngẫu nhiên
+const inputName = process.env.PLAYER_NAME ? process.env.PLAYER_NAME.trim() : '';
+const finalUsername = inputName !== '' ? inputName : 'AFK_Bot_' + Math.floor(Math.random() * 9000 + 1000);
 
-permissions:
-  actions: write
-  contents: read
+const CONFIG = {
+    host: process.env.SERVER_HOST || 'leaffish.aternos.host',
+    port: parseInt(process.env.SERVER_PORT || '11391'),
+    username: finalUsername,
+    version: process.env.SERVER_VERSION || '1.21.11', 
+    auth: 'offline',
+    checkVersionCompatibility: false,
+    defaultTimeout: 60000
+};
 
-jobs:
-  run-bot:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+// Nếu bạn nhập UUID từ Zalith Launcher vào GitHub Actions thì gán vào đây
+const inputUuid = process.env.PLAYER_UUID ? process.env.PLAYER_UUID.trim() : '';
+if (inputUuid !== '') {
+    CONFIG.uuid = inputUuid;
+}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
+function createBot() {
+    console.log(`[+] Đang kết nối tới ${CONFIG.host}:${CONFIG.port} (Phiên bản: ${CONFIG.version}) với tên: ${CONFIG.username}`);
+    if (CONFIG.uuid) {
+        console.log(`[*] Sử dụng UUID riêng từ Zalith Launcher: ${CONFIG.uuid}`);
+    }
 
-      # --- CACHE NPM GIÚP CÀI ĐẶT SIÊU TỐC ---
-      - name: Cache node modules
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-      # --------------------------------------
+    const bot = mineflayer.createBot(CONFIG);
+    bot.loadPlugin(pathfinder);
 
-      - name: Cài đặt thư viện (mineflayer & pathfinder)
-        run: npm ci || npm install mineflayer mineflayer-pathfinder minecraft-data --prefer-offline
+    bot.on('spawn', () => {
+        console.log(`[✓] Bot ${CONFIG.username} ĐÃ VÀO SERVER VÀ AN TOÀN!`);
+        
+        const mcData = require('minecraft-data')(bot.version);
+        const defaultMove = new Movements(bot, mcData);
+        bot.pathfinder.setMovements(defaultMove);
 
-      - name: Chạy Bot & Đợi 5 tiếng để gọi Workflow tiếp theo
-        env:
-          SERVER_HOST: ${{ github.event.inputs.server_host || 'leaffish.aternos.host' }}
-          SERVER_PORT: ${{ github.event.inputs.server_port || '11391' }}
-          SERVER_VERSION: ${{ github.event.inputs.server_version || '1.21' }}
-          PLAYER_NAME: ${{ github.event.inputs.player_name || '' }}
-          PLAYER_UUID: ${{ github.event.inputs.player_uuid || '' }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO_OWNER: ${{ github.repository_owner }}
-          REPO_NAME: ${{ github.event.repository.name }}
-        run: |
-          # 1. Chạy Bot ngầm ở background
-          echo "[*] Khởi tạo tiến trình Bot kết nối tới $SERVER_HOST:$SERVER_PORT..."
-          node bot.js &
-          BOT_PID=$!
+        // Chống AFK tự nhiên (quay đầu, nhìn ngẫu nhiên, nhảy)
+        const antiAfkInterval = setInterval(() => {
+            if (!bot || !bot.entity) return;
+            if (bot.pathfinder.isMoving()) return;
 
-          # 2. Ngủ 5 tiếng (18000 giây)
-          echo "[*] Bot đã chạy. Đang đếm ngược 5 tiếng (18000s) để kích hoạt Workflow tiếp theo..."
-          sleep 18000
+            const randomYaw = Math.random() * Math.PI * 2;
+            const randomPitch = (Math.random() * 0.5) - 0.25;
 
-          # 3. Sau 5 tiếng, gọi Workflow mới VỚI ĐÚNG THÔNG TIN ĐÃ NHẬP
-          echo "[+] Đã đủ 5 tiếng! Đang truyền thông tin và gọi Workflow kế tiếp..."
-          curl -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/actions/workflows/afk.yml/dispatches \
-            -d "{
-              \"ref\": \"main\",
-              \"inputs\": {
-                \"server_host\": \"$SERVER_HOST\",
-                \"server_port\": \"$SERVER_PORT\",
-                \"server_version\": \"$SERVER_VERSION\",
-                \"player_name\": \"$PLAYER_NAME\",
-                \"player_uuid\": \"$PLAYER_UUID\"
-              }
-            }" || echo "[!] Lỗi khi gọi Workflow mới!"
+            bot.look(randomYaw, randomPitch, true, () => {
+                if (Math.random() > 0.6) {
+                    bot.setControlState('jump', true);
+                    setTimeout(() => bot.setControlState('jump', false), 400);
+                }
+            });
+        }, 20000);
 
-          # 4. Chạy gối đầu nốt 1 tiếng cuối cùng (3600 giây)
-          echo "[*] Workflow tiếp theo đã được tạo. Workflow hiện tại sẽ chạy nốt 1 tiếng còn lại..."
-          sleep 3600
-          
-          # Tắt bot cũ
-          kill $BOT_PID || true
-            
+        // Chạy trốn khi có quái vật hoặc người chơi tấn công trong bán kính 6 block
+        const defenseInterval = setInterval(() => {
+            if (!bot || !bot.entity) return;
+
+            const filter = e => (e.type === 'mob' || e.type === 'player') && e.username !== bot.username && bot.entity.position.distanceTo(e.position) < 6;
+            const danger = bot.nearestEntity(filter);
+
+            if (danger) {
+                console.log(`[!] Phát hiện nguy hiểm từ ${danger.username || danger.name}! Đang chạy trốn...`);
+                const dx = bot.entity.position.x - danger.position.x;
+                const dz = bot.entity.position.z - danger.position.z;
+                
+                const escapeGoal = new goals.GoalBlock(
+                    Math.floor(bot.entity.position.x + dx * 3),
+                    Math.floor(bot.entity.position.y),
+                    Math.floor(bot.entity.position.z + dz * 3)
+                );
+                
+                bot.pathfinder.setGoal(escapeGoal, true);
+            }
+        }, 3000);
+
+        bot.once('end', () => {
+            clearInterval(antiAfkInterval);
+            clearInterval(defenseInterval);
+        });
+    });
+
+    bot.on('kicked', (reason) => {
+        console.log(`[!] BỊ SERVER KICK! Lý do:`, JSON.stringify(reason));
+    });
+
+    bot.on('chat', (username, message) => {
+        if (username === bot.username) return;
+        console.log(`[Chat] <${username}> ${message}`);
+    });
+
+    bot.on('end', (reason) => {
+        console.log(`[!] Ngắt kết nối (Lý do: ${reason}). Đang kết nối lại sau 10s...`);
+        setTimeout(createBot, 10000);
+    });
+
+    bot.on('error', (err) => {
+        console.log(`[!] Lỗi kết nối: ${err.message}`);
+    });
+}
+
+createBot();
