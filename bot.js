@@ -31,23 +31,15 @@ function createBot() {
     bot.on('spawn', () => {
         console.log(`[✓] Bot ${CONFIG.username} ĐÃ VÀO SERVER VÀ AN TOÀN!`);
 
-        // Cơ chế chống AFK an toàn 100%: Quay đầu + Cúi người (Sneak) nhẹ mỗi 25s
-        // Không dùng jump hay pathfinder di chuyển để tránh bị server phát hiện invalid movement
+        // Cơ chế chống AFK thuần túy 100% an toàn: Chỉ xoay góc nhìn, không chạm vào phím di chuyển/sneak
         const antiAfkInterval = setInterval(() => {
             if (!bot || !bot.entity) return;
 
             const randomYaw = Math.random() * Math.PI * 2;
             const randomPitch = (Math.random() * 0.4) - 0.2;
 
-            // 1. Quay góc nhìn ngẫu nhiên
-            bot.look(randomYaw, randomPitch, true, () => {
-                // 2. Nhấp nhả Sneak (cúi người) an toàn
-                bot.setControlState('sneak', true);
-                setTimeout(() => {
-                    if (bot) bot.setControlState('sneak', false);
-                }, 500);
-            });
-        }, 25000);
+            bot.look(randomYaw, randomPitch, true);
+        }, 30000); // 30 giây xoay một lần
 
         bot.once('end', () => {
             clearInterval(antiAfkInterval);
@@ -64,8 +56,9 @@ function createBot() {
     });
 
     bot.on('end', (reason) => {
-        console.log(`[!] Ngắt kết nối (Lý do: ${reason}). Đang kết nối lại sau 10s...`);
-        setTimeout(createBot, 10000);
+        // Tăng thời gian chờ lên 45 giây để vượt qua thời gian cooldown của Aternos
+        console.log(`[!] Ngắt kết nối (Lý do: ${reason}). Đang kết nối lại sau 45s để tránh lỗi cooldown...`);
+        setTimeout(createBot, 45000);
     });
 
     bot.on('error', (err) => {
