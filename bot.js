@@ -1,5 +1,4 @@
 const mineflayer = require('mineflayer');
-const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
 
 // Xử lý tên: Ưu tiên lấy từ GitHub Actions, nếu trống tự sinh tên ngẫu nhiên
 const inputName = process.env.PLAYER_NAME ? process.env.PLAYER_NAME.trim() : '';
@@ -15,7 +14,7 @@ const CONFIG = {
     defaultTimeout: 60000
 };
 
-// Nếu bạn nhập UUID từ Zalith Launcher vào GitHub Actions thì gán vào đây
+// Gán UUID nếu người dùng nhập từ Zalith Launcher
 const inputUuid = process.env.PLAYER_UUID ? process.env.PLAYER_UUID.trim() : '';
 if (inputUuid !== '') {
     CONFIG.uuid = inputUuid;
@@ -24,60 +23,34 @@ if (inputUuid !== '') {
 function createBot() {
     console.log(`[+] Đang kết nối tới ${CONFIG.host}:${CONFIG.port} (Phiên bản: ${CONFIG.version}) với tên: ${CONFIG.username}`);
     if (CONFIG.uuid) {
-        console.log(`[*] Sử dụng UUID riêng từ Zalith Launcher: ${CONFIG.uuid}`);
+        console.log(`[*] Sử dụng UUID riêng: ${CONFIG.uuid}`);
     }
 
     const bot = mineflayer.createBot(CONFIG);
-    bot.loadPlugin(pathfinder);
 
     bot.on('spawn', () => {
         console.log(`[✓] Bot ${CONFIG.username} ĐÃ VÀO SERVER VÀ AN TOÀN!`);
-        
-        const mcData = require('minecraft-data')(bot.version);
-        const defaultMove = new Movements(bot, mcData);
-        bot.pathfinder.setMovements(defaultMove);
 
-        // Chống AFK tự nhiên (quay đầu, nhìn ngẫu nhiên, nhảy)
+        // Cơ chế chống AFK an toàn 100%: Quay đầu + Cúi người (Sneak) nhẹ mỗi 25s
+        // Không dùng jump hay pathfinder di chuyển để tránh bị server phát hiện invalid movement
         const antiAfkInterval = setInterval(() => {
             if (!bot || !bot.entity) return;
-            if (bot.pathfinder.isMoving()) return;
 
             const randomYaw = Math.random() * Math.PI * 2;
-            const randomPitch = (Math.random() * 0.5) - 0.25;
+            const randomPitch = (Math.random() * 0.4) - 0.2;
 
+            // 1. Quay góc nhìn ngẫu nhiên
             bot.look(randomYaw, randomPitch, true, () => {
-                if (Math.random() > 0.6) {
-                    bot.setControlState('jump', true);
-                    setTimeout(() => bot.setControlState('jump', false), 400);
-                }
+                // 2. Nhấp nhả Sneak (cúi người) an toàn
+                bot.setControlState('sneak', true);
+                setTimeout(() => {
+                    if (bot) bot.setControlState('sneak', false);
+                }, 500);
             });
-        }, 20000);
-
-        // Chạy trốn khi có quái vật hoặc người chơi tấn công trong bán kính 6 block
-        const defenseInterval = setInterval(() => {
-            if (!bot || !bot.entity) return;
-
-            const filter = e => (e.type === 'mob' || e.type === 'player') && e.username !== bot.username && bot.entity.position.distanceTo(e.position) < 6;
-            const danger = bot.nearestEntity(filter);
-
-            if (danger) {
-                console.log(`[!] Phát hiện nguy hiểm từ ${danger.username || danger.name}! Đang chạy trốn...`);
-                const dx = bot.entity.position.x - danger.position.x;
-                const dz = bot.entity.position.z - danger.position.z;
-                
-                const escapeGoal = new goals.GoalBlock(
-                    Math.floor(bot.entity.position.x + dx * 3),
-                    Math.floor(bot.entity.position.y),
-                    Math.floor(bot.entity.position.z + dz * 3)
-                );
-                
-                bot.pathfinder.setGoal(escapeGoal, true);
-            }
-        }, 3000);
+        }, 25000);
 
         bot.once('end', () => {
             clearInterval(antiAfkInterval);
-            clearInterval(defenseInterval);
         });
     });
 
