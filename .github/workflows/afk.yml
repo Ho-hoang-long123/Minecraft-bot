@@ -1,4 +1,4 @@
-name: Aternos Java AFK Bot (Auto 24/7)
+name: Aternos Java AFK Bot (Self-Trigger Chain 24/7)
 
 on:
   workflow_dispatch:
@@ -15,6 +15,14 @@ on:
         description: 'Phiên bản Minecraft'
         required: false
         default: '1.21.11'
+      player_name:
+        description: 'Tên nhân vật (Username)'
+        required: false
+        default: 'AFK_Bot'
+      player_uuid:
+        description: 'UUID nhân vật (Để trống nếu không dùng)'
+        required: false
+        default: ''
 
 permissions:
   actions: write
@@ -45,17 +53,19 @@ jobs:
       - name: Cài đặt thư viện
         run: npm ci || npm install mineflayer --prefer-offline
 
-      - name: Chạy Bot & Đợi 5 tiếng gọi Workflow tiếp theo
+      - name: Chạy Bot & Đợi 5 tiếng để gọi Workflow tiếp theo
         env:
           SERVER_HOST: ${{ github.event.inputs.server_host || 'dottyback.aternos.host' }}
           SERVER_PORT: ${{ github.event.inputs.server_port || '11391' }}
           SERVER_VERSION: ${{ github.event.inputs.server_version || '1.21.11' }}
+          PLAYER_NAME: ${{ github.event.inputs.player_name || 'AFK_Bot' }}
+          PLAYER_UUID: ${{ github.event.inputs.player_uuid || '' }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO_OWNER: ${{ github.repository_owner }}
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
           # 1. Chạy Bot ngầm ở background
-          echo "[*] Khởi tạo tiến trình Bot kết nối tới $SERVER_HOST:$SERVER_PORT (v$SERVER_VERSION)..."
+          echo "[*] Khởi tạo tiến trình Bot kết nối tới $SERVER_HOST:$SERVER_PORT (v$SERVER_VERSION) với Tên: $PLAYER_NAME..."
           node bot.js &
           BOT_PID=$!
 
@@ -63,8 +73,8 @@ jobs:
           echo "[*] Bot đã chạy. Đang đếm ngược 5 tiếng (18000s) để kích hoạt Workflow tiếp theo..."
           sleep 18000
 
-          # 3. Sau 5 tiếng, gọi Workflow mới để nối chuỗi chạy tiếp
-          echo "[+] Đã đủ 5 tiếng! Đang truyền thông tin server và gọi Workflow kế tiếp..."
+          # 3. Sau 5 tiếng, gọi Workflow mới VỚI ĐÚNG THÔNG TIN ĐÃ NHẬP
+          echo "[+] Đã đủ 5 tiếng! Đang truyền thông tin server/tài khoản và gọi Workflow kế tiếp..."
           curl -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
@@ -74,7 +84,9 @@ jobs:
               \"inputs\": {
                 \"server_host\": \"$SERVER_HOST\",
                 \"server_port\": \"$SERVER_PORT\",
-                \"server_version\": \"$SERVER_VERSION\"
+                \"server_version\": \"$SERVER_VERSION\",
+                \"player_name\": \"$PLAYER_NAME\",
+                \"player_uuid\": \"$PLAYER_UUID\"
               }
             }" || echo "[!] Lỗi khi gọi Workflow mới!"
 
