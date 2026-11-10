@@ -1,4 +1,4 @@
-name: Aternos Java AFK Bot (Self-Trigger Chain 24/7)
+name: Aternos Java AFK Bot (Auto 24/7)
 
 on:
   workflow_dispatch:
@@ -32,7 +32,7 @@ jobs:
         with:
           node-version: 18
 
-      # --- BẮT ĐẦU PHẦN CACHE: Giúp cài npm siêu tốc ---
+      # --- CACHE NPM GIÚP CÀI ĐẶT SIÊU TỐC ---
       - name: Cache node modules
         uses: actions/cache@v4
         with:
@@ -40,12 +40,12 @@ jobs:
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
-      # -----------------------------------------------
+      # --------------------------------------
 
-      - name: Cài đặt thư viện siêu tốc
-        run: npm ci || npm install --prefer-offline
+      - name: Cài đặt thư viện
+        run: npm ci || npm install mineflayer --prefer-offline
 
-      - name: Chạy Bot & Đợi 5 tiếng để gọi Workflow tiếp theo
+      - name: Chạy Bot & Đợi 5 tiếng gọi Workflow tiếp theo
         env:
           SERVER_HOST: ${{ github.event.inputs.server_host || 'dottyback.aternos.host' }}
           SERVER_PORT: ${{ github.event.inputs.server_port || '11391' }}
@@ -63,8 +63,8 @@ jobs:
           echo "[*] Bot đã chạy. Đang đếm ngược 5 tiếng (18000s) để kích hoạt Workflow tiếp theo..."
           sleep 18000
 
-          # 3. Sau 5 tiếng, gửi lệnh kích hoạt Workflow mới VỚI ĐÚNG INPUT
-          echo "[+] Đã đủ 5 tiếng! Đang truyền IP/Port hiện tại và gọi Workflow kế tiếp..."
+          # 3. Sau 5 tiếng, gọi Workflow mới để nối chuỗi chạy tiếp
+          echo "[+] Đã đủ 5 tiếng! Đang truyền thông tin server và gọi Workflow kế tiếp..."
           curl -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
@@ -78,9 +78,10 @@ jobs:
               }
             }" || echo "[!] Lỗi khi gọi Workflow mới!"
 
-          # 4. Chạy nốt 1 tiếng cuối cùng (3600 giây) để gối đầu xong rồi mới tắt
+          # 4. Chạy gối đầu nốt 1 tiếng cuối cùng (3600 giây)
           echo "[*] Workflow tiếp theo đã được tạo. Workflow hiện tại sẽ chạy nốt 1 tiếng còn lại..."
           sleep 3600
           
           # Tắt bot cũ
           kill $BOT_PID || true
+          
