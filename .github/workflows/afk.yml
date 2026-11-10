@@ -6,7 +6,7 @@ on:
       server_host:
         description: 'Host Java'
         required: false
-        default: 'leaffish.aternos.host'
+        default: 'dottyback.aternos.host'
       server_port:
         description: 'Port Java'
         required: false
@@ -14,13 +14,13 @@ on:
       server_version:
         description: 'Phiên bản Minecraft'
         required: false
-        default: '1.21.11'
+        default: '1.21'
       player_name:
-        description: 'Tên nhân vật (Trùng tên Zalith Launcher)'
+        description: 'Tên nhân vật (Để trống = Tự tạo ngẫu nhiên)'
         required: false
         default: ''
       player_uuid:
-        description: 'UUID nhân vật (Lấy từ Zalith Launcher)'
+        description: 'UUID nhân vật (Tùy chọn - Dùng cho tài khoản riêng)'
         required: false
         default: ''
 
@@ -38,26 +38,26 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 18
 
       # --- CACHE NPM GIÚP CÀI ĐẶT SIÊU TỐC ---
       - name: Cache node modules
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
       # --------------------------------------
 
       - name: Cài đặt thư viện
-        run: npm install --prefer-offline
+        run: npm ci || npm install mineflayer mineflayer-pathfinder minecraft-data --prefer-offline
 
       - name: Chạy Bot & Đợi 5 tiếng để gọi Workflow tiếp theo
         env:
-          SERVER_HOST: ${{ github.event.inputs.server_host || 'leaffish.aternos.host' }}
+          SERVER_HOST: ${{ github.event.inputs.server_host || 'dottyback.aternos.host' }}
           SERVER_PORT: ${{ github.event.inputs.server_port || '11391' }}
-          SERVER_VERSION: ${{ github.event.inputs.server_version || '1.21.11' }}
+          SERVER_VERSION: ${{ github.event.inputs.server_version || '1.21' }}
           PLAYER_NAME: ${{ github.event.inputs.player_name || '' }}
           PLAYER_UUID: ${{ github.event.inputs.player_uuid || '' }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -73,7 +73,7 @@ jobs:
           echo "[*] Bot đã chạy. Đang đếm ngược 5 tiếng (18000s) để kích hoạt Workflow tiếp theo..."
           sleep 18000
 
-          # 3. Sau 5 tiếng, gọi Workflow mới VỚI ĐÚNG THÔNG TIN ĐÃ NHẬP
+          # 3. Sau 5 tiếng, gọi Workflow mới VỚI ĐÚNG INPUT ĐÃ NHẬP
           echo "[+] Đã đủ 5 tiếng! Đang truyền thông tin và gọi Workflow kế tiếp..."
           curl -X POST \
             -H "Accept: application/vnd.github+json" \
@@ -96,4 +96,3 @@ jobs:
           
           # Tắt bot cũ
           kill $BOT_PID || true
-          
