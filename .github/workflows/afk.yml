@@ -6,7 +6,7 @@ on:
       server_host:
         description: 'Host Java'
         required: false
-        default: 'dottyback.aternos.host'
+        default: 'leaffish.aternos.host'
       server_port:
         description: 'Port Java'
         required: false
@@ -16,11 +16,11 @@ on:
         required: false
         default: '1.21.11'
       player_name:
-        description: 'Tên nhân vật (Username)'
+        description: 'Tên nhân vật (Trùng tên Zalith Launcher)'
         required: false
-        default: 'AFK_Bot'
+        default: ''
       player_uuid:
-        description: 'UUID nhân vật (Để trống nếu không dùng)'
+        description: 'UUID nhân vật (Lấy từ Zalith Launcher)'
         required: false
         default: ''
 
@@ -38,34 +38,34 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
 
       # --- CACHE NPM GIÚP CÀI ĐẶT SIÊU TỐC ---
       - name: Cache node modules
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
       # --------------------------------------
 
       - name: Cài đặt thư viện
-        run: npm ci || npm install mineflayer --prefer-offline
+        run: npm install --prefer-offline
 
       - name: Chạy Bot & Đợi 5 tiếng để gọi Workflow tiếp theo
         env:
-          SERVER_HOST: ${{ github.event.inputs.server_host || 'dottyback.aternos.host' }}
+          SERVER_HOST: ${{ github.event.inputs.server_host || 'leaffish.aternos.host' }}
           SERVER_PORT: ${{ github.event.inputs.server_port || '11391' }}
           SERVER_VERSION: ${{ github.event.inputs.server_version || '1.21.11' }}
-          PLAYER_NAME: ${{ github.event.inputs.player_name || 'AFK_Bot' }}
+          PLAYER_NAME: ${{ github.event.inputs.player_name || '' }}
           PLAYER_UUID: ${{ github.event.inputs.player_uuid || '' }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO_OWNER: ${{ github.repository_owner }}
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
           # 1. Chạy Bot ngầm ở background
-          echo "[*] Khởi tạo tiến trình Bot kết nối tới $SERVER_HOST:$SERVER_PORT (v$SERVER_VERSION) với Tên: $PLAYER_NAME..."
+          echo "[*] Khởi tạo tiến trình Bot kết nối tới $SERVER_HOST:$SERVER_PORT (v$SERVER_VERSION)..."
           node bot.js &
           BOT_PID=$!
 
@@ -74,7 +74,7 @@ jobs:
           sleep 18000
 
           # 3. Sau 5 tiếng, gọi Workflow mới VỚI ĐÚNG THÔNG TIN ĐÃ NHẬP
-          echo "[+] Đã đủ 5 tiếng! Đang truyền thông tin server/tài khoản và gọi Workflow kế tiếp..."
+          echo "[+] Đã đủ 5 tiếng! Đang truyền thông tin và gọi Workflow kế tiếp..."
           curl -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
