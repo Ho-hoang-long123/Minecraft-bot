@@ -1,5 +1,6 @@
 const mineflayer = require('mineflayer');
 
+// Xử lý tên: Ưu tiên lấy từ GitHub Actions, nếu trống tự sinh tên ngẫu nhiên
 const inputName = process.env.PLAYER_NAME ? process.env.PLAYER_NAME.trim() : '';
 const finalUsername = inputName !== '' ? inputName : 'AFK_Bot_' + Math.floor(Math.random() * 9000 + 1000);
 
@@ -13,31 +14,34 @@ const CONFIG = {
     defaultTimeout: 60000
 };
 
-// Nếu có nhập UUID riêng
+// Gán UUID nếu người dùng nhập từ Zalith Launcher
 const inputUuid = process.env.PLAYER_UUID ? process.env.PLAYER_UUID.trim() : '';
 if (inputUuid !== '') {
     CONFIG.uuid = inputUuid;
 }
 
+let isConnected = false; // Cờ kiểm tra xem bot đã vào game chưa
+
 function createBot() {
-    console.log(`[+] Đang kết nối tới ${CONFIG.host}:${CONFIG.port} (Phiên bản: ${CONFIG.version}) với tên: ${CONFIG.username}`);
+    console.log(`[+] Đang kết nối tới ${CONFIG.host}:${CONFIG.port} (Phiên bản: ${CONFIG.version}) với tên: ${CONFIG.username}...`);
 
     const bot = mineflayer.createBot(CONFIG);
 
-    // Ép bật tính năng vật lý chuẩn ngay từ đầu
+    // Ép bật vật lý chuẩn để tránh lỗi lơ lửng khi spawn
     bot.physicsEnabled = true;
 
     bot.on('spawn', () => {
-        console.log(`[✓] Bot ${CONFIG.username} ĐÃ VÀO SERVER VÀ AN TOÀN!`);
+        isConnected = true;
+        console.log(`[✓] BOT ${CONFIG.username} ĐÃ VÀO GAME THÀNH CÔNG! ĐANG TREO AFK LIÊN TỤC...`);
 
-        // Đợi 1 giây để server ổn định vị trí chân chạm đất
+        // Đợi 1s để ổn định vị trí chân chạm đất
         setTimeout(() => {
             if (bot && bot.entity) {
-                bot.clearControlStates(); // Xóa sạch các phím đang nhấn dở
+                bot.clearControlStates();
             }
         }, 1000);
 
-        // Anti-AFK an toàn: Chỉ xoay góc nhìn ngẫu nhiên mỗi 30s
+        // Chống AFK an toàn: Chỉ xoay góc nhìn ngẫu nhiên mỗi 30s để server nhận biết bot hoạt động
         const antiAfkInterval = setInterval(() => {
             if (!bot || !bot.entity) return;
 
@@ -52,11 +56,11 @@ function createBot() {
         });
     });
 
-    // Tự động nhận biết câu lệnh Login/Register nếu server dùng AuthMe
+    // Tự động gõ lệnh Login/Register nếu server dùng AuthMe
     bot.on('message', (jsonMsg) => {
         const message = jsonMsg.toString();
         if (message.includes('/login') || message.includes('/register')) {
-            console.log('[!] Server yêu cầu đăng nhập/đăng ký. Đang gửi mật khẩu tạm...');
+            console.log('[!] Server yêu cầu đăng nhập/đăng ký. Đang gửi lệnh...');
             bot.chat('/login 12345678');
             bot.chat('/register 12345678 12345678');
         }
@@ -72,8 +76,11 @@ function createBot() {
     });
 
     bot.on('end', (reason) => {
-        console.log(`[!] Ngắt kết nối (Lý do: ${reason}). Đang kết nối lại sau 45s để tránh cooldown...`);
-        setTimeout(createBot, 45000);
+        isConnected = false;
+        console.log(`[!] Mất kết nối (Lý do: ${reason}). Đang thử kết nối lại sau 10 giây...`);
+        
+        // Thử vào lại liên tục mỗi 10 giây nếu bị out
+        setTimeout(createBot, 10000);
     });
 
     bot.on('error', (err) => {
@@ -81,4 +88,5 @@ function createBot() {
     });
 }
 
+// Bắt đầu chạy bot
 createBot();
