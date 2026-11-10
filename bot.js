@@ -36,7 +36,7 @@ function createBot() {
         const defaultMove = new Movements(bot, mcData);
         bot.pathfinder.setMovements(defaultMove);
 
-        // Chống AFK tự nhiên (quay đầu, nhìn ngẫu nhiên)
+        // 1. Chống AFK tự nhiên (quay đầu, nhìn ngẫu nhiên, nhảy)
         const antiAfkInterval = setInterval(() => {
             if (!bot || !bot.entity) return;
             if (bot.pathfinder.isMoving()) return;
@@ -52,7 +52,7 @@ function createBot() {
             });
         }, 20000);
 
-        // Chạy trốn khi có quái vật hoặc người chơi tấn công trong bán kính 6 block
+        // 2. Chạy trốn khi có quái vật hoặc người chơi tấn công trong bán kính 6 block
         const defenseInterval = setInterval(() => {
             if (!bot || !bot.entity) return;
 
@@ -74,9 +74,60 @@ function createBot() {
             }
         }, 3000);
 
+        // 3. TÍNH NĂNG MỚI: Tự động tìm hang / khu vực tối hoặc thấp hơn để chui xuống trú ẩn định kỳ
+        const caveSeekInterval = setInterval(() => {
+            if (!bot || !bot.entity) return;
+            // Nếu bot đang di chuyển né quái hoặc đang bận việc khác thì bỏ qua
+            if (bot.pathfinder.isMoving()) return;
+
+            console.log(`[*] Đang tìm kiếm hang động hoặc khu vực thấp/trú ẩn xung quanh...`);
+
+            // Quét các block xung quanh trong bán kính 10 block để tìm lối đi xuống hoặc hang (block không khí ở độ cao thấp hơn hoặc có mái che)
+            const p = bot.entity.position;
+            let bestTarget = null;
+            let lowestY = p.y;
+
+            for (let x = -10; x <= 10; x += 2) {
+                for (let z = -10; z <= 10; z += 2) {
+                    for (let y = -4; y <= 2; y++) {
+                        const checkPos = p.offset(x, y, z);
+                        const block = bot.blockAt(checkPos);
+                        const blockAbove = bot.blockAt(checkPos.offset(0, 1, 0));
+                        const blockBelow = bot.blockAt(checkPos.offset(0, -1, 0));
+
+                        // Điều kiện nhận diện hang/hầm: Là chỗ trống (air), bên dưới là khối rắn (để đứng), và có vật cản ở trên đầu (có mái che/hang)
+                        if (block && block.name === 'air' && blockBelow && blockBelow.name !== 'air' && blockAbove && blockAbove.name !== 'air') {
+                            if (checkPos.y < lowestY) {
+                                lowestY = checkPos.y;
+                                bestTarget = checkPos;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (bestTarget) {
+                console.log(`[✓] Đã tìm thấy vị trí hang/hầm tại (${Math.floor(bestTarget.x)}, ${Math.floor(bestTarget.y)}, ${Math.floor(bestTarget.z)}). Đang di chuyển vào trong...`);
+                const goal = new goals.GoalBlock(bestTarget.x, bestTarget.y, bestTarget.z);
+                bot.pathfinder.setGoal(goal);
+            } else {
+                // Nếu không tìm thấy hang tự nhiên gần đó, bot sẽ tự động đi di chuyển ngẫu nhiên một quãng ngắn để tìm
+                const randomX = p.x + (Math.random() * 16 - 8);
+                const randomZ = p.z + (Math.random() * 16 - 8);
+                const groundBlock = bot.findBlock({
+                    matching: block => block.name !== 'air',
+                    maxDistance: 10
+                });
+                if (groundBlock) {
+                    bot.pathfinder.setGoal(new goals.GoalBlock(randomX, groundBlock.position.y + 1, randomZ));
+                }
+            }
+        }, 120000); // Cứ mỗi 2 phút bot sẽ tự động quét và tìm chỗ chui xuống hang/trú ẩn một lần
+
         bot.once('end', () => {
             clearInterval(antiAfkInterval);
             clearInterval(defenseInterval);
+            clearInterval(caveSeekInterval);
         });
     });
 
