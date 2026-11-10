@@ -1,82 +1,101 @@
 const mineflayer = require('mineflayer');
+const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
 
-const inputName = process.env.PLAYER_NAME ? process.env.PLAYER_NAME.trim() : '';
-const finalUsername = inputName !== '' ? inputName : 'AFK_Bot_' + Math.floor(Math.random() * 9000 + 1000);
+// Xác định tên: Nếu có nhập PLAYER_NAME thì dùng, nếu không sẽ tự tạo ngẫu nhiên
+const inputUsername = process.env.PLAYER_NAME;
+const finalUsername = (inputUsername && inputUsername.trim() !== '') 
+    ? inputUsername.trim() 
+    : 'AFK_Bot_' + Math.floor(Math.random() * 900 + 100);
 
 const CONFIG = {
     host: process.env.SERVER_HOST || 'leaffish.aternos.host',
     port: parseInt(process.env.SERVER_PORT || '11391'),
     username: finalUsername,
-    version: process.env.SERVER_VERSION || '1.21.11', 
+    version: process.env.SERVER_VERSION || '1.21', 
     auth: 'offline',
     checkVersionCompatibility: false,
     defaultTimeout: 60000
 };
 
-let reconnectAttempts = 0;
+// Nếu có nhập UUID, thêm vào config của bot
+const inputUuid = process.env.PLAYER_UUID;
+if (inputUuid && inputUuid.trim() !== '') {
+    CONFIG.uuid = inputUuid.trim();
+}
 
 function createBot() {
-    console.log(`[+] Đang kết nối tới ${CONFIG.host}:${CONFIG.port} (v${CONFIG.version}) với tên: ${CONFIG.username}...`);
+    console.log(`[+] Đang kết nối tới ${CONFIG.host}:${CONFIG.port} (Phiên bản: ${CONFIG.version}) với tên ${CONFIG.username}...`);
 
     const bot = mineflayer.createBot(CONFIG);
-
-    // Chặn lỗi phát sinh từ luồng mạng để bot không bị crash ứng dụng node.js
-    bot.on('error', (err) => {
-        console.log(`[!] Lỗi kết nối mạng: ${err.message}`);
-    });
+    bot.loadPlugin(pathfinder);
 
     bot.on('spawn', () => {
-        reconnectAttempts = 0; // Reset lại bộ đếm khi đã vào thành công
-        console.log(`[✓] BOT ${CONFIG.username} ĐÃ VÀO GAME THÀNH CÔNG VÀ AN TOÀN!`);
+        console.log(`[✓] Bot ${CONFIG.username} ĐÃ VÀO SERVER VÀ AN TOÀN!`);
+        
+        const mcData = require('minecraft-data')(bot.version);
+        const defaultMove = new Movements(bot, mcData);
+        bot.pathfinder.setMovements(defaultMove);
 
-        // QUAN TRỌNG: Chờ 2 giây để server Aternos load xong chunk và vị trí dưới chân bot,
-        // tuyệt đối không gửi bất kỳ packet di chuyển/quay đầu nào ngay lúc mới spawn để tránh lỗi invalid_player_movement.
-        setTimeout(() => {
+        // Chống AFK tự nhiên (quay đầu, nhìn ngẫu nhiên)
+        const antiAfkInterval = setInterval(() => {
             if (!bot || !bot.entity) return;
-            
-            bot.clearControlStates();
-            bot.physicsEnabled = true;
+            if (bot.pathfinder.isMoving()) return;
 
-            // Sau khi đã đứng vững hoàn toàn, mới bật bộ đếm chống AFK an toàn (chỉ quay đầu nhẹ)
-            const antiAfkInterval = setInterval(() => {
-                if (!bot || !bot.entity) return;
+            const randomYaw = Math.random() * Math.PI * 2;
+            const randomPitch = (Math.random() * 0.5) - 0.25;
 
-                const randomYaw = Math.random() * Math.PI * 2;
-                const randomPitch = (Math.random() * 0.3) - 0.15;
-
-                try {
-                    bot.look(randomYaw, randomPitch, true);
-                } catch (e) {
-                    // Bỏ qua lỗi nhỏ nếu entity chưa sẵn sàng
+            bot.look(randomYaw, randomPitch, true, () => {
+                if (Math.random() > 0.6) {
+                    bot.setControlState('jump', true);
+                    setTimeout(() => bot.setControlState('jump', false), 400);
                 }
-            }, 30000); // 30 giây quay đầu 1 lần
-
-            bot.once('end', () => {
-                clearInterval(antiAfkInterval);
             });
-        }, 2000);
-    });
+        }, 20000);
 
-    // Tự động đăng nhập nếu server dùng AuthMe
-    bot.on('message', (jsonMsg) => {
-        const message = jsonMsg.toString();
-        if (message.includes('/login') || message.includes('/register')) {
-            console.log('[!] Phát hiện yêu cầu đăng nhập từ server. Đang gửi lệnh...');
-            bot.chat('/login 12345678');
-            bot.chat('/register 12345678 12345678');
-        }
+        // Chạy trốn khi có quái vật hoặc người chơi tấn công trong bán kính 6 block
+        const defenseInterval = setInterval(() => {
+            if (!bot || !bot.entity) return;
+
+            const filter = e => (e.type === 'mob' || e.type === 'player') && e.username !== bot.username && bot.entity.position.distanceTo(e.position) < 6;
+            const danger = bot.nearestEntity(filter);
+
+            if (danger) {
+                console.log(`[!] Phát hiện nguy hiểm từ ${danger.username || danger.name}! Đang chạy trốn...`);
+                const dx = bot.entity.position.x - danger.position.x;
+                const dz = bot.entity.position.z - danger.position.z;
+                
+                const escapeGoal = new goals.GoalBlock(
+                    Math.floor(bot.entity.position.x + dx * 3),
+                    Math.floor(bot.entity.position.y),
+                    Math.floor(bot.entity.position.z + dz * 3)
+                );
+                
+                bot.pathfinder.setGoal(escapeGoal, true);
+            }
+        }, 3000);
+
+        bot.once('end', () => {
+            clearInterval(antiAfkInterval);
+            clearInterval(defenseInterval);
+        });
     });
 
     bot.on('kicked', (reason) => {
-        console.log(`[!] BỊ SERVER KICK! Lý do chi tiết:`, JSON.stringify(reason));
+        console.log(`[!] BỊ SERVER KICK! Lý do:`, JSON.stringify(reason));
+    });
+
+    bot.on('chat', (username, message) => {
+        if (username === bot.username) return;
+        console.log(`[Chat] <${username}> ${message}`);
     });
 
     bot.on('end', (reason) => {
-        reconnectAttempts++;
-        console.log(`[!] Mất kết nối (Lý do: ${reason}). Đang thử kết nối lại sau 10 giây (Lần thử: ${reconnectAttempts})...`);
-        
-        // Thử lại sau đúng 10 giây
+        console.log(`[!] Ngắt kết nối (Lý do: ${reason}). Đang kết nối lại sau 10s...`);
         setTimeout(createBot, 10000);
+    });
+
+    bot.on('error', (err) => {
+        console.log(`[!] Lỗi kết nối: ${err.message}`);
     });
 }
 
